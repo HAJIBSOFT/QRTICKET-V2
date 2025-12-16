@@ -367,7 +367,7 @@
             <div id="modalContent">
                 <!-- المحتوى سيتغير ديناميكياً هنا -->
             </div>
-            <button onclick="closeModal()" class="btn-modal" id="modalCloseBtn">مسح التالي</button>
+            <button onclick="closeModal()" class="btn-modal" id="modalCloseBtn">اغلاق</button>
         </div>
     </div>
 
@@ -453,7 +453,7 @@
         function showModalResult(type, title, messageHtml) {
             resultModal.className = 'modal-overlay active';
             modalCloseBtn.style.display = 'block';
-            modalCloseBtn.innerText = "مسح التالي";
+            modalCloseBtn.innerText = "اغلاق";
 
             // تحديد الستايل والأيقونة بناءً على النوع
             let iconClass = "fa-info-circle";
@@ -717,3 +717,4 @@
     </script>
 </body>
 </html>
+
