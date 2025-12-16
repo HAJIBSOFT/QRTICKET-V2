@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAJIB | مصمم الدعوات</title>
+    
+    <!-- مكتبات ضرورية -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg: #111827;
+            --panel: #1f2937;
+            --primary: #3b82f6;
+            --text: #f3f4f6;
+            --border: #374151;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+        body { margin: 0; font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+
+        /* --- Header --- */
+        header {
+            background: var(--panel); border-bottom: 1px solid var(--border);
+            padding: 15px 30px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .brand { font-size: 1.4rem; font-weight: 800; color: var(--primary); display: flex; gap: 10px; align-items: center; }
+        .status-badge { background: #065f46; color: #34d399; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; }
+        .loading { color: #fbbf24; display: none; }
+
+        /* --- Main Layout --- */
+        .workspace { flex: 1; display: flex; overflow: hidden; height: 100%; }
+        
+        /* Sidebar Controls */
+        .controls {
+            width: 350px; background: var(--panel); border-left: 1px solid var(--border);
+            padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;
+        }
+        .control-group { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border: 1px solid var(--border); }
+        .control-title { font-weight: bold; margin-bottom: 15px; display: block; color: var(--primary); font-size: 0.95rem; }
+        
+        label { display: block; font-size: 0.85rem; color: #9ca3af; margin-bottom: 5px; margin-top: 10px; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        input[type="color"] { width: 100%; height: 40px; border: none; border-radius: 5px; cursor: pointer; }
+        input[type="file"] { width: 100%; font-size: 0.9rem; }
+        
+        .btn {
+            width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: inherit;
+            display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s;
+        }
+        .btn-primary { background: var(--primary); color: white; margin-top: auto; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-primary:disabled { background: #4b5563; cursor: not-allowed; }
+
+        /* Preview Area */
+        .preview-area {
+            flex: 1; background: #000; display: flex; justify-content: center; align-items: center;
+            background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px;
+            padding: 20px; overflow: auto;
+        }
+        canvas {
+            box-shadow: 0 0 50px rgba(0,0,0,0.5); max-width: 100%; max-height: 100%; object-fit: contain;
+        }
+
+        /* --- Print Styles --- */
+        #print-container { display: none; }
+        @media print {
+            body { background: white; height: auto; display: block; }
+            header, .workspace, .controls { display: none !important; }
+            #print-container { display: block !important; }
+            .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } /* صورتين في الصفحة */
+            .print-grid img { width: 100%; height: auto; page-break-inside: avoid; border: 1px solid #eee; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <i class="fas fa-paint-brush"></i> مصمم البطاقات
+        </div>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <span id="dataStatus" class="loading"><i class="fas fa-circle-notch fa-spin"></i> جاري جلب الأسماء...</span>
+            <span id="guestCountBadge" class="status-badge">0 مدعوين</span>
+        </div>
+    </header>
+
+    <div class="workspace">
+        
+        <!-- أدوات التحكم -->
+        <aside class="controls">
+            
+            <div class="control-group">
+                <span class="control-title"><i class="fas fa-image"></i> الخلفية</span>
+                <input type="file" id="bgInput" accept="image/*">
+                <label style="margin-top:10px; font-size:0.7rem; color:orange;">* يفضل استخدام صورة بجودة عالية</label>
+            </div>
+
+            <div class="control-group">
+                <span class="control-title"><i class="fas fa-qrcode"></i> إعدادات الباركود</span>
+                
+                <label>الحجم (<span id="qrSizeVal">150</span>px)</label>
+                <input type="range" id="qrSize" min="50" max="600" value="150">
+
+                <label>الموقع الأفقي X</label>
+                <input type="range" id="qrX" min="0" max="2000" value="50">
+
+                <label>الموقع العمودي Y</label>
+                <input type="range" id="qrY" min="0" max="2000" value="50">
+            </div>
+
+            <div class="control-group">
+                <span class="control-title"><i class="fas fa-font"></i> إعدادات الاسم</span>
+
+                <label>حجم الخط (<span id="textSizeVal">40</span>px)</label>
+                <input type="range" id="textSize" min="10" max="200" value="40">
+
+                <label>لون النص</label>
+                <input type="color" id="textColor" value="#ffffff">
+
+                <label>الموقع الأفقي X</label>
+                <input type="range" id="textX" min="0" max="2000" value="50">
+
+                <label>الموقع العمودي Y</label>
+                <input type="range" id="textY" min="0" max="2000" value="300">
+                
+                <label>محاذاة النص</label>
+                <select id="textAlign" style="width:100%; padding:8px; border-radius:5px; margin-top:5px;">
+                    <option value="right">يمين (Right)</option>
+                    <option value="center">وسط (Center)</option>
+                    <option value="left">يسار (Left)</option>
+                </select>
+            </div>
+
+            <button id="printBtn" class="btn btn-primary" onclick="startGeneration()">
+                <i class="fas fa-print"></i> توليد وطباعة البطاقات
+            </button>
+        </aside>
+
+        <!-- منطقة المعاينة -->
+        <div class="preview-area">
+            <canvas id="canvas"></canvas>
+        </div>
+
+    </div>
+
+    <!-- حاويات مخفية للمعالجة -->
+    <div id="print-container"></div>
+    <div id="tempQR" style="display:none;"></div>
+
+    <script>
+        // --- إعدادات الرابط ---
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzcJyxjZ4DcOKkboUYvDOrkWs5PVsKScetEzEvSXwzIL3sFGb0JHHVpTzZRksiaBJsW/exec';
+        
+        let allGuests = [];
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let bgImage = new Image();
+        
+        // إعدادات افتراضية
+        const settings = {
+            qrSize: 150, qrX: 50, qrY: 50,
+            textSize: 40, textX: 50, textY: 300, textColor: '#ffffff', textAlign: 'right'
+        };
+
+        // صورة افتراضية (مساحة بيضاء) حتى يرفع المستخدم صورته
+        bgImage.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+gAAALQCAIAAACw5t5xAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABTSURBVHhe7cExAQAAAMKg9U9tDQ8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4McIsHgAAa1w1XEAAAAASUVORK5CYII=";
+        bgImage.onload = () => drawPreview();
+
+        // --- 1. جلب البيانات عند فتح الصفحة ---
+        async function fetchData() {
+            const statusEl = document.getElementById('dataStatus');
+            const badgeEl = document.getElementById('guestCountBadge');
+            
+            statusEl.style.display = 'inline-block';
+            statusEl.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> جاري الاتصال بقاعدة البيانات...';
+
+            try {
+                const formData = new FormData();
+                formData.append('action', 'getDetailedReport');
+                const res = await fetch(API_URL, { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if(data.success) {
+                    // دمج القوائم
+                    allGuests = [...data.attendedGuests, ...data.notAttendedGuests];
+                    badgeEl.innerText = `${allGuests.length} مدعوين`;
+                    badgeEl.style.background = '#065f46';
+                    statusEl.style.display = 'none';
+                }
+            } catch(e) {
+                statusEl.innerHTML = '<span style="color:red">خطأ في الاتصال!</span>';
+                console.error(e);
+            }
+        }
+        fetchData();
+
+        // --- 2. التحكم في التصميم ---
+        
+        // رفع الصورة
+        document.getElementById('bgInput').addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    bgImage = new Image();
+                    bgImage.onload = function() {
+                        // تحديث الحد الأقصى للمتغيرات بناءً على حجم الصورة
+                        ['qrX', 'qrY', 'textX', 'textY'].forEach(id => {
+                            document.getElementById(id).max = Math.max(bgImage.width, bgImage.height);
+                        });
+                        drawPreview();
+                    }
+                    bgImage.src = event.target.result;
+                }
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        // ربط المدخلات (Sliders)
+        ['qrSize', 'qrX', 'qrY', 'textSize', 'textX', 'textY'].forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                settings[id] = parseInt(e.target.value);
+                if(document.getElementById(id+'Val')) document.getElementById(id+'Val').innerText = settings[id];
+                drawPreview();
+            });
+        });
+        document.getElementById('textColor').addEventListener('input', (e) => { settings.textColor = e.target.value; drawPreview(); });
+        document.getElementById('textAlign').addEventListener('change', (e) => { settings.textAlign = e.target.value; drawPreview(); });
+
+        // --- 3. رسم المعاينة ---
+        function drawPreview() {
+            // ضبط حجم الكانفاس بحجم الصورة
+            canvas.width = bgImage.width || 800;
+            canvas.height = bgImage.height || 600;
+
+            // 1. الخلفية
+            ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+
+            // 2. مربع وهمي للباركود
+            ctx.fillStyle = "#000";
+            ctx.fillRect(settings.qrX, settings.qrY, settings.qrSize, settings.qrSize);
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(settings.qrX + 10, settings.qrY + 10, settings.qrSize - 20, settings.qrSize - 20); // تفاصيل وهمية
+            
+            // 3. النص (اسم افتراضي)
+            ctx.font = `bold ${settings.textSize}px 'Tajawal', sans-serif`;
+            ctx.fillStyle = settings.textColor;
+            ctx.textAlign = settings.textAlign;
+            ctx.textBaseline = 'middle';
+            ctx.fillText("اسم الضيف الكريم", settings.textX, settings.textY);
+        }
+
+        // --- 4. التوليد والطباعة (الجزء المعقد) ---
+        async function startGeneration() {
+            if(allGuests.length === 0) return alert("لا يوجد بيانات للمدعوين، تأكد من الاتصال بالإنترنت.");
+            
+            const btn = document.getElementById('printBtn');
+            const originalText = btn.innerHTML;
+            const container = document.getElementById('print-container');
+            
+            btn.disabled = true;
+            container.innerHTML = '<div class="print-grid"></div>';
+            const grid = container.querySelector('.print-grid');
+
+            // دالة مساعدة لتوليد صورة واحدة
+            const createCard = (guest) => {
+                return new Promise((resolve) => {
+                    // 1. توليد QR في عنصر مخفي
+                    const tempDiv = document.createElement('div');
+                    // نستخدم مكتبة qrcodejs
+                    const qr = new QRCode(tempDiv, {
+                        text: guest.qrCode,
+                        width: settings.qrSize,
+                        height: settings.qrSize,
+                        correctLevel : QRCode.CorrectLevel.H
+                    });
+
+                    // انتظار بسيط لضمان رسم الـ QR
+                    setTimeout(() => {
+                        const qrImg = tempDiv.querySelector('img');
+                        if(!qrImg) return resolve(null);
+
+                        // 2. رسم البطاقة النهائية في كانفاس مؤقت
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = canvas.width;
+                        tempCanvas.height = canvas.height;
+                        const tCtx = tempCanvas.getContext('2d');
+
+                        // رسم الخلفية
+                        tCtx.drawImage(bgImage, 0, 0);
+                        
+                        // رسم الـ QR الحقيقي
+                        tCtx.drawImage(qrImg, settings.qrX, settings.qrY, settings.qrSize, settings.qrSize);
+
+                        // رسم الاسم الحقيقي
+                        tCtx.font = `bold ${settings.textSize}px 'Tajawal', sans-serif`;
+                        tCtx.fillStyle = settings.textColor;
+                        tCtx.textAlign = settings.textAlign;
+                        tCtx.textBaseline = 'middle';
+                        tCtx.fillText(guest.name, settings.textX, settings.textY);
+
+                        // 3. تحويل الكانفاس لصورة
+                        const finalImg = document.createElement('img');
+                        finalImg.src = tempCanvas.toDataURL('image/jpeg', 0.85); // جودة 85% لتقليل الحجم
+                        resolve(finalImg);
+                    }, 20); // 20ms delay
+                });
+            };
+
+            // حلقة تكرارية للمعالجة
+            for (let i = 0; i < allGuests.length; i++) {
+                btn.innerHTML = `<i class="fas fa-cog fa-spin"></i> جاري المعالجة (${i + 1} من ${allGuests.length})`;
+                const img = await createCard(allGuests[i]);
+                if(img) grid.appendChild(img);
+            }
+
+            btn.innerHTML = '<i class="fas fa-check"></i> جاهز للطباعة!';
+            
+            // انتظار تحميل الصور في الـ DOM
+            setTimeout(() => {
+                window.print();
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }, 1000);
+        }
+
+    </script>
+</body>
+</html>
