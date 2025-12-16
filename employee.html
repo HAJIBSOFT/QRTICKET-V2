@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مسح تذاكر الحفل</title>
+    <!-- تم تحديث المكتبة إلى الإصدار 2.3.8 -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/dist/html5-qrcode.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha512-KfkfwYDsLkIlwQp6LFnl8zNdLGxu9YAA1QvwINks4PhcElQSvqcyVLLD9aMhXd13uQjoXtEKNosOWaZqXgel0g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        body {
+            font-family: 'Cairo', 'Tajawal', sans-serif;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            text-align: center;
+        }
+        h1 {
+            color: #3498db;
+            margin-bottom: 25px;
+            font-size: 2.2em;
+        }
+        #qr-reader-container {
+            background-color: rgba(52, 73, 94, 0.9);
+            backdrop-filter: blur(5px);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 500px; /* Adjust as needed for mobile */
+            margin-bottom: 20px;
+        }
+        #qr-reader {
+            width: 100%;
+            min-height: 250px; /* Adjust as needed for mobile */
+            border: 3px dashed #3498db;
+            background-color: #2c3e50; /* Placeholder background */
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        /* The library injects a video element. Style it directly if needed. */
+        #qr-reader video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover; /* Ensures video covers the area, might crop */
+        }
+        #qr-reader-results {
+            margin-top: 0;
+            padding: 15px;
+            background-color: #34495e;
+            border-radius: 8px;
+            min-height: 70px;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 1.1em;
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            word-wrap: break-word;
+        }
+        .status-message { font-weight: bold; }
+        .success { background-color: #2ecc71 !important; color: white !important; }
+        .error { background-color: #e74c3c !important; color: white !important; }
+        .warning { background-color: #f39c12 !important; color: #2c3e50 !important; }
+        .info { background-color: #3498db !important; color: white !important; }
+
+        button {
+            padding: 12px 25px;
+            margin-top: 15px;
+            margin-right: 10px;
+            border-radius: 6px;
+            border: none;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        button i { margin-left: 8px; }
+        button:hover { background-color: #2980b9; }
+        button:active { transform: translateY(1px); }
+        button:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+        }
+
+        #showLookupButton { background-color: #e67e22; }
+        #showLookupButton:hover { background-color: #d35400; }
+
+        #manualTicketLookup {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: rgba(44, 62, 80, 0.95);
+            border-radius: 8px;
+            display: none;
+            width: 100%;
+            max-width: 500px; /* Consistent with reader container */
+            box-sizing: border-box;
+        }
+        #manualTicketLookup label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #ecf0f1;
+        }
+        #manualTicketLookup input[type="text"] {
+            width: calc(100% - 24px);
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border: 1px solid #7f8c8d;
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            font-size: 1em;
+        }
+        #manualTicketLookup input[type="text"]:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 0.2rem rgba(52,152,219,.25);
+            outline: none;
+        }
+        #manualTicketLookup button {
+            width: 100%;
+            background-color: #27ae60;
+            margin-top: 0;
+        }
+        #manualTicketLookup button:hover { background-color: #229954; }
+
+        .button-group { margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1><i class="fas fa-qrcode"></i> مسح تذاكر الدخول</h1>
+
+    <div id="qr-reader-container">
+        <div id="qr-reader">
+             <p>جاري تهيئة الكاميرا...</p>
+        </div>
+        <div id="qr-reader-results" class="status-message">
+            انقر على "بدء المسح" لتفعيل الكاميرا.
+        </div>
+    </div>
+
+    <div class="button-group">
+        <button id="cameraPermissionButton" onclick="startScanner()"><i class="fas fa-camera"></i> بدء المسح بالكاميرا</button>
+        <button id="showLookupButton" onclick="toggleTicketLookup()"><i class="fas fa-search"></i> البحث اليدوي</button>
+    </div>
+
+    <div id="manualTicketLookup">
+        <label for="manualTicketId">أدخل معرّف التذكرة أو بيانات QR:</label>
+        <input type="text" id="manualTicketId" placeholder="مثال: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+        <button onclick="lookupTicketManually()"><i class="fas fa-check-circle"></i> تحقق من التذكرة</button>
+    </div>
+
+    <audio id="successSound" src="success.mp3" preload="auto"></audio>
+    <audio id="errorSound" src="error.mp3" preload="auto"></audio>
+    <audio id="usedSound" src="used.mp3" preload="auto"></audio>
+    <audio id="infoSound" src="info.mp3" preload="auto"></audio>
+
+
+    <script>
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzuetKY6kocpOaIGGOpOgbUNnkdknirYjj2yTCE6bxv15OqTO8wxcopKbpMBr0sHC1L/exec'; // !!! استبدل هذا !!!
+        const resultsDiv = document.getElementById('qr-reader-results');
+        const qrReaderDiv = document.getElementById('qr-reader');
+        const cameraPermissionButton = document.getElementById('cameraPermissionButton');
+
+        const successSound = document.getElementById('successSound');
+        const errorSound = document.getElementById('errorSound');
+        const usedSound = document.getElementById('usedSound');
+        const infoSound = document.getElementById('infoSound');
+
+        let html5QrCode = null;
+        let isScannerActiveIntent = false; 
+        let isScannerStopping = false; 
+
+        function playSound(soundElement) {
+            if (soundElement && typeof soundElement.play === 'function') {
+                soundElement.currentTime = 0;
+                soundElement.play().catch(e => console.warn("Error playing sound:", e));
+            }
+        }
+
+        async function processTicketResult(decodedText, actionType = 'scan') {
+            const isManualLookup = actionType === 'lookup';
+            const endpointAction = isManualLookup ? 'lookupTicket' : 'scanTicket';
+
+            resultsDiv.innerHTML = `جاري التحقق: <strong>${decodedText}</strong>...`;
+            resultsDiv.className = 'status-message';
+
+            let scannerWasProgrammaticallyStopped = false;
+            if (!isManualLookup && html5QrCode && html5QrCode.isScanning() && !isScannerStopping) { // Note: isScanning() is a method now
+                isScannerStopping = true; 
+                try {
+                    await html5QrCode.stop();
+                    console.log("QR scanning stopped to process result.");
+                    scannerWasProgrammaticallyStopped = true;
+                } catch (err) {
+                    console.warn("Could not stop QR scanner during processing:", err);
+                    qrReaderDiv.innerHTML = `<p style="color:red;">خطأ أثناء إيقاف الماسح للمعالجة. قد تحتاج لتحديث الصفحة.</p>`;
+                } finally {
+                    isScannerStopping = false; 
+                }
+            }
+
+            const formData = new FormData();
+            formData.append('action', endpointAction);
+            formData.append('qrCodeData', decodedText);
+
+            try {
+                const response = await fetch(WEB_APP_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+                console.log(`Response from ${endpointAction}:`, result);
+
+                if (result.success) {
+                    if (result.status === "valid_and_used") {
+                        resultsDiv.innerHTML = `<strong><i class="fas fa-check-circle"></i> ${result.message}</strong><br>الضيف: ${result.guestName || 'غير محدد'}`;
+                        resultsDiv.className = 'status-message success';
+                        playSound(successSound);
+                    } else if (result.status === "valid_not_used") {
+                        resultsDiv.innerHTML = `<strong><i class="fas fa-info-circle"></i> ${result.message}</strong><br>الضيف: ${result.guestName || 'غير محدد'}<br>تاريخ الإنشاء: ${result.generatedAt || 'N/A'}`;
+                        resultsDiv.className = 'status-message info';
+                        playSound(infoSound);
+                    }
+                } else {
+                    resultsDiv.innerHTML = `<strong><i class="fas fa-exclamation-triangle"></i> ${result.message}</strong>`;
+                    if (result.status === "already_used") {
+                        resultsDiv.innerHTML += `<br>الضيف: ${result.guestName || 'غير محدد'}<br>وقت الدخول: ${result.scannedAt}`;
+                        resultsDiv.className = 'status-message warning';
+                        playSound(usedSound);
+                    } else {
+                        resultsDiv.className = 'status-message error';
+                        playSound(errorSound);
+                    }
+                }
+            } catch (error) {
+                console.error("Network or Fetch error:", error);
+                resultsDiv.innerHTML = `<strong><i class="fas fa-wifi-slash"></i> خطأ في الاتصال بالخادم:</strong> ${error.message}`;
+                resultsDiv.className = 'status-message error';
+                playSound(errorSound);
+            }
+
+            if (!isManualLookup && scannerWasProgrammaticallyStopped && isScannerActiveIntent) {
+                setTimeout(() => {
+                    if (isScannerActiveIntent && (!html5QrCode || !html5QrCode.isScanning()) && !isScannerStopping) {
+                        console.log("Attempting to restart scanner automatically after processing.");
+                        startScannerLogic();
+                    } else if (!isScannerActiveIntent) {
+                        console.log("Scanner restart aborted as user stopped it during processing.");
+                        qrReaderDiv.innerHTML = '<p>تم إيقاف الكاميرا.</p>';
+                        cameraPermissionButton.innerHTML = '<i class="fas fa-camera"></i> بدء المسح بالكاميرا';
+                        cameraPermissionButton.disabled = false;
+                    }
+                }, 3000);
+            } else if (isManualLookup || (!isScannerActiveIntent && scannerWasProgrammaticallyStopped)) {
+                cameraPermissionButton.innerHTML = '<i class="fas fa-camera"></i> بدء المسح بالكاميرا';
+                cameraPermissionButton.disabled = false;
+                if (scannerWasProgrammaticallyStopped && !isManualLookup) {
+                     qrReaderDiv.innerHTML = '<p>تم إيقاف الكاميرا. انقر لبدء المسح.</p>';
+                }
+            }
+        }
+
+
+        function onScanSuccess(decodedText, decodedResult) {
+            console.log(`QR Code Scanned: ${decodedText}`, decodedResult);
+            // With newer versions, the scanner might stop automatically after a scan
+            // depending on configuration. The library handles this better.
+            // We call processTicketResult which will handle stopping if needed for processing.
+            processTicketResult(decodedText, 'scan');
+        }
+
+        function onScanFailure(error) {
+            // Handle scan failure, usually means no QR code was found.
+            // It's good to avoid logging too frequently for "No QR code found" errors.
+            if (error && typeof error === 'string' && 
+                (error.toLowerCase().includes("no qr code found") || error.includes("찾을 수 없습니다"))) {
+                // Suppress frequent "no QR code" logs if desired
+            } else {
+                 console.warn(`QR Scan Error: ${error}`);
+            }
+        }
+
+        function checkCameraPrerequisites() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                const errorMsg = "متصفحك لا يدعم الوصول إلى الكاميرا (getUserMedia API غير متوفر). الرجاء استخدام متصفح أحدث أو مختلف.";
+                handleScannerStartError(errorMsg);
+                return false;
+            }
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                const errorMsg = "لأسباب أمنية، يجب تشغيل هذه الصفحة عبر اتصال آمن (HTTPS) أو على خادم محلي (localhost) للوصول إلى الكاميرا.";
+                handleScannerStartError(errorMsg);
+                return false;
+            }
+            return true;
+        }
+
+        function startScanner() {
+            if (isScannerStopping) {
+                console.log("Scanner is currently stopping, please wait.");
+                return;
+            }
+
+            if (html5QrCode && html5QrCode.isScanning()) {
+                stopScanner();
+                return;
+            }
+
+            if (!checkCameraPrerequisites()) {
+                return;
+            }
+
+            const manualLookupDiv = document.getElementById('manualTicketLookup');
+            if(manualLookupDiv.style.display === 'block') {
+                toggleTicketLookup(); 
+            }
+
+            qrReaderDiv.innerHTML = '<p>جاري تهيئة الكاميرا...</p>'; 
+            resultsDiv.textContent = "جاري طلب إذن الكاميرا...";
+            resultsDiv.className = 'status-message';
+            cameraPermissionButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري البدء...';
+            cameraPermissionButton.disabled = true;
+            isScannerActiveIntent = true; 
+
+            startScannerLogic();
+        }
+
+        function startScannerLogic() {
+            if (isScannerStopping) {
+                console.log("Attempted to start scanner while it was stopping. Aborting start.");
+                cameraPermissionButton.innerHTML = '<i class="fas fa-camera"></i> بدء المسح بالكاميرا';
+                cameraPermissionButton.disabled = false;
+                isScannerActiveIntent = false;
+                return;
+            }
+            qrReaderDiv.innerHTML = ''; // Clear previous content / placeholder
+
+            // Initialize Html5Qrcode
+            // For newer versions, you can pass verbose: false to suppress library logs if needed.
+            // html5QrCode = new Html5Qrcode("qr-reader", /* verbose= */ false);
+            // Or, if you want to be very specific about QR codes only:
+            /*
+            html5QrCode = new Html5Qrcode("qr-reader", {
+                formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ],
+                verbose: false
+            });
+            */
+            // For simplicity, stick to the basic constructor if no advanced format filtering is needed.
+            // The library should handle creating a new instance or reusing correctly.
+            // Let's re-initialize to ensure a clean state, which can be more robust.
+             if (html5QrCode) { // If an old instance exists, try to clear it first.
+                try {
+                    if (html5QrCode.isScanning()) {
+                        html5QrCode.stop().catch(e => console.warn("Minor error stopping old instance:", e));
+                    }
+                    html5QrCode.clear().catch(e => console.warn("Minor error clearing old instance:", e)); // clear() removes video elements etc.
+                } catch (e) {
+                    console.warn("Error handling old html5QrCode instance:", e);
+                }
+            }
+            html5QrCode = new Html5Qrcode("qr-reader");
+
+
+            const config = {
+                fps: 10, // Optional, frame per second for QR code scanning
+                qrbox: (viewfinderWidth, viewfinderHeight) => { // Optional, custom scanbox size
+                    let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                    let qrboxSize = Math.floor(minEdge * 0.75); // Make it 75% of the smaller edge
+                    return { width: qrboxSize, height: qrboxSize };
+                },
+                // aspectRatio: 1.7777778, // Optional, if you want to force a specific aspect ratio for the video feed
+                // rememberLastUsedCamera: true // Default true, remembers last used camera by user
+            };
+
+            console.log("Attempting to start scanner...");
+            // First argument can be cameraId or constraints object
+            html5QrCode.start(
+                { facingMode: "environment" }, // Request rear camera
+                config,
+                onScanSuccess,
+                onScanFailure
+            )
+            .then(() => {
+                if (!isScannerActiveIntent) { 
+                    console.log("Scanner started but user intent was to stop. Stopping immediately.");
+                    stopScanner(); 
+                    return;
+                }
+                console.log("Scanner started successfully with environment facingMode.");
+                resultsDiv.textContent = "الكاميرا مفعلة. وجهها نحو QR Code.";
+                resultsDiv.className = 'status-message info';
+                cameraPermissionButton.innerHTML = '<i class="fas fa-stop-circle"></i> إيقاف المسح';
+                cameraPermissionButton.disabled = false;
+            })
+            .catch((errEnvironment) => {
+                if (!isScannerActiveIntent) { 
+                    console.log("Scanner start failed and user intent was to stop.");
+                    handleScannerStartError("تم إلغاء بدء الكاميرا."); 
+                    return;
+                }
+                console.warn("Failed to start with environment facingMode:", errEnvironment);
+                // Fallback to enumerate cameras and try the first one
+                Html5Qrcode.getCameras().then(devices => {
+                    if (!isScannerActiveIntent) { return; }
+                    console.log("Available camera devices:", devices);
+                    if (devices && devices.length) {
+                        const cameraIdToTry = devices[0].id; // Try first available camera
+                        console.log("Attempting to use camera ID:", cameraIdToTry);
+                        html5QrCode.start( cameraIdToTry, config, onScanSuccess, onScanFailure)
+                        .then(() => {
+                            if (!isScannerActiveIntent) { stopScanner(); return; }
+                            console.log("Scanner started successfully with camera ID:", cameraIdToTry);
+                            resultsDiv.textContent = "الكاميرا مفعلة. وجهها نحو QR Code.";
+                            resultsDiv.className = 'status-message info';
+                            cameraPermissionButton.innerHTML = '<i class="fas fa-stop-circle"></i> إيقاف المسح';
+                            cameraPermissionButton.disabled = false;
+                        })
+                        .catch(errSpecificCamera => handleScannerStartError(errSpecificCamera));
+                    } else {
+                         handleScannerStartError("لم يتم العثور على كاميرات متاحة.");
+                    }
+                }).catch(errGetCameras => {
+                    handleScannerStartError("خطأ في الوصول لقائمة الكاميرات: " + (errGetCameras.message || errGetCameras));
+                });
+            });
+        }
+
+        function handleScannerStartError(errorMessage) {
+            console.error("Scanner Start Error:", errorMessage);
+            qrReaderDiv.innerHTML = `<p style="color:red;">فشل بدء الكاميرا.</p>`;
+            let displayError = "فشل بدء تشغيل الكاميرا. تحقق من الأذونات وحاول مرة أخرى.";
+            if (typeof errorMessage === 'string') {
+                displayError = errorMessage;
+            } else if (errorMessage && errorMessage.message) {
+                 // More specific error messages based on error name
+                if (errorMessage.name === "NotAllowedError" || errorMessage.message.includes("Permission denied")) {
+                    displayError = "تم رفض إذن الوصول إلى الكاميرا. يرجى السماح بالوصول في إعدادات المتصفح.";
+                } else if (errorMessage.name === "NotFoundError" || errorMessage.message.toLowerCase().includes("requested device not found")) {
+                     displayError = "لم يتم العثور على كاميرا. تأكد من توصيل كاميرا وأنها غير مستخدمة بواسطة تطبيق آخر.";
+                } else if (errorMessage.name === "NotReadableError" || errorMessage.message.includes("Could not start video source")) {
+                    displayError = "لا يمكن قراءة الكاميرا. قد تكون مستخدمة من قبل تطبيق آخر أو هناك مشكلة بها.";
+                }
+                else {
+                    displayError = `خطأ في الكاميرا: ${errorMessage.message}`;
+                }
+            }
+            resultsDiv.textContent = displayError;
+            resultsDiv.className = 'status-message error';
+            cameraPermissionButton.innerHTML = '<i class="fas fa-camera"></i> بدء المسح بالكاميرا';
+            cameraPermissionButton.disabled = false;
+            isScannerActiveIntent = false; 
+        }
+
+        function stopScanner() {
+            if (isScannerStopping) {
+                console.log("Scanner is already in the process of stopping.");
+                return;
+            }
+            isScannerActiveIntent = false; 
+
+            if (html5QrCode && html5QrCode.isScanning()) {
+                isScannerStopping = true;
+                cameraPermissionButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الإيقاف...';
+                cameraPermissionButton.disabled = true;
+
+                html5QrCode.stop()
+                .then(() => {
+                    console.log("Scanner stopped successfully by user.");
+                    qrReaderDiv.innerHTML = '<p>تم إيقاف الكاميرا.</p>'; // Clear video feed area
+                    resultsDiv.textContent = "تم إيقاف المسح. انقر على 'بدء المسح' مرة أخرى.";
+                    resultsDiv.className = 'status-message';
+                })
+                .catch(err => {
+                    console.error("Error stopping scanner:", err);
+                     // The error "Not Found" or "removeChild" during stop is less critical if the camera actually stops.
+                     // If it's a different error, it's more problematic.
+                    if (err.name === "NotFoundError" || (err.message && err.message.includes("removeChild"))) {
+                        console.warn("Scanner stop resulted in a minor cleanup error, but likely stopped.", err);
+                        qrReaderDiv.innerHTML = '<p>تم إيقاف الكاميرا (مع ملاحظة بسيطة).</p>';
+                    } else {
+                        qrReaderDiv.innerHTML = `<p style="color:red;">حدث خطأ أثناء محاولة إيقاف الكاميرا. (${err.message || err.name || 'خطأ غير معروف'})</p>`;
+                    }
+                    resultsDiv.textContent = "خطأ عند محاولة إيقاف الماسح.";
+                    resultsDiv.className = 'status-message error';
+                })
+                .finally(() => {
+                    cameraPermissionButton.innerHTML = '<i class="fas fa-camera"></i> بدء المسح بالكاميرا';
+                    cameraPermissionButton.disabled = false;
+                    isScannerStopping = false;
+                    // Consider calling html5QrCode.clear() here if you want to fully remove video elements
+                    // html5QrCode.clear().catch(e => console.warn("Error clearing scanner:", e));
+                });
+            } else {
+                console.log("Scanner not active or already stopped.");
+                qrReaderDiv.innerHTML = '<p>الكاميرا غير نشطة بالفعل أو تم إيقافها.</p>';
+                cameraPermissionButton.innerHTML = '<i class="fas fa-camera"></i> بدء المسح بالكاميرا';
+                cameraPermissionButton.disabled = false;
+                isScannerActiveIntent = false; 
+            }
+        }
+
+
+        function toggleTicketLookup() {
+            const lookupDiv = document.getElementById('manualTicketLookup');
+            const showButton = document.getElementById('showLookupButton');
+            if (lookupDiv.style.display === 'none') {
+                lookupDiv.style.display = 'block';
+                showButton.innerHTML = '<i class="fas fa-times-circle"></i> إغلاق البحث اليدوي';
+                if (html5QrCode && html5QrCode.isScanning() && !isScannerStopping) {
+                    stopScanner();
+                }
+            } else {
+                lookupDiv.style.display = 'none';
+                showButton.innerHTML = '<i class="fas fa-search"></i> البحث اليدوي';
+            }
+        }
+
+        async function lookupTicketManually() {
+            const ticketId = document.getElementById('manualTicketId').value.trim();
+            if (!ticketId) {
+                resultsDiv.textContent = "الرجاء إدخال معرّف التذكرة أو بيانات QR.";
+                resultsDiv.className = 'status-message warning';
+                playSound(errorSound);
+                return;
+            }
+
+            if (html5QrCode && html5QrCode.isScanning() && !isScannerStopping) {
+                 isScannerActiveIntent = false; 
+                 // Ensure stopScanner completes before proceeding with the lookup
+                 await new Promise(resolve => {
+                    stopScanner(); // This will handle UI, etc.
+                    // Give a brief moment for stopScanner to potentially complete its async tasks.
+                    // A more robust way would be for stopScanner to return a promise and await that.
+                    // For now, this timeout covers most cases.
+                    // Or, make stopScanner return its promise:
+                    // await stopScanner(); // if stopScanner returns html5QrCode.stop() promise
+                    // For now, processTicketResult will also try to stop if needed
+                    resolve();
+                 });
+            } else if (isScannerStopping) {
+                console.warn("Manual lookup initiated while scanner is stopping. Please wait.");
+                resultsDiv.textContent = "الماسح الضوئي قيد الإيقاف حاليًا، يرجى الانتظار.";
+                resultsDiv.className = 'status-message warning';
+                return;
+            }
+            processTicketResult(ticketId, 'lookup');
+        }
+        
+        cameraPermissionButton.innerHTML = '<i class="fas fa-camera"></i> بدء المسح بالكاميرا';
+
+    </script>
+</body>
+</html>

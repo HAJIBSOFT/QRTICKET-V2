@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم المدير - تذاكر الحفل</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome (استبدل YOUR_KIT_CODE أو استخدم CDN العام) -->
+    <script src="https://kit.fontawesome.com/YOUR_KIT_CODE.js" crossorigin="anonymous"></script>
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css"> -->
+    <style>
+        body {
+            font-family: 'Cairo', 'Tajawal', sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 30px auto;
+            background-color: #fff;
+            padding: 25px 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        h1 { text-align: center; font-size: 2.2em; margin-bottom: 30px; color: #3498db;}
+        h2 { font-size: 1.6em; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-top: 30px;}
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"] {
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            width: calc(100% - 32px);
+            box-sizing: border-box;
+            font-size: 1em;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        input[type="text"]:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 0.2rem rgba(52,152,219,.25);
+            outline: none;
+        }
+        button {
+            padding: 12px 25px;
+            margin-right: 10px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            border: none;
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        button i { margin-left: 8px; } /* أيقونة على اليسار في RTL */
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:active {
+            transform: translateY(1px);
+        }
+        #qrcodeContainer {
+            margin-top: 25px;
+            text-align: center;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            min-height: 220px; /* لضمان وجود مساحة حتى عند التحميل */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #qrcodeContainer img {
+            border: 2px solid #3498db;
+            padding: 5px;
+            background-color: white;
+            border-radius: 4px;
+        }
+        #ticketInfo {
+            margin-top: 15px;
+            font-size: 0.95em;
+            color: #444;
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        #ticketInfo p { margin: 8px 0; }
+        #ticketInfo i { margin-left: 5px; color: #3498db; }
+        .report {
+            margin-top: 40px;
+            padding: 20px;
+            background-color: #e9ecef;
+            border-radius: 8px;
+        }
+        .report p {
+            font-size: 1.1em;
+            color: #333;
+            margin: 10px 0;
+        }
+        .report span {
+            font-weight: bold;
+            color: #e74c3c;
+            font-size: 1.2em;
+        }
+        .report button {
+            background-color: #2ecc71;
+        }
+        .report button:hover {
+            background-color: #27ae60;
+        }
+        #saveQrButton {
+            background-color: #1abc9c;
+        }
+        #saveQrButton:hover {
+            background-color: #16a085;
+        }
+        .loader {
+            border: 5px solid #f3f3f3; /* Light grey */
+            border-top: 5px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-cogs"></i> لوحة تحكم المدير</h1>
+
+        <section id="ticket-generation">
+            <h2><i class="fas fa-ticket-alt"></i> إنشاء تذكرة جديدة</h2>
+            <label for="guestName">اسم الضيف (اختياري):</label>
+            <input type="text" id="guestName" placeholder="مثال: عبدالله خالد">
+            <button onclick="generateTicket()"><i class="fas fa-plus-circle"></i> إنشاء ومشاركة تذكرة</button>
+            <button onclick="saveQRCodeImage()" id="saveQrButton" style="display: none;"><i class="fas fa-save"></i> حفظ صورة التذكرة</button>
+
+            <div id="qrcodeContainer">
+                <p>سيظهر QR Code هنا بعد الإنشاء.</p>
+            </div>
+            <div id="ticketInfo" style="display: none;">
+                <!-- معلومات التذكرة ستظهر هنا -->
+            </div>
+        </section>
+
+        <section class="report">
+            <h2><i class="fas fa-chart-bar"></i> التقارير</h2>
+            <p>إجمالي عدد المدعوين: <span id="invitedCount">0</span></p>
+            <p>إجمالي عدد الحضور: <span id="attendedCount">0</span></p>
+            <button onclick="fetchReport()"><i class="fas fa-sync-alt"></i> تحديث التقرير</button>
+        </section>
+    </div>
+
+    <script>
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxBeWk8sRQetXX1kpEj-BXeyy1hRKwf9FJnHefoIlNTSH83pNOw7R4aqnAOp-SW9wVG/exec'; // !!! استبدل هذا !!!
+        let currentQRCodeInstance = null;
+        let currentQRCodeDataForSave = null;
+
+        const qrcodeContainer = document.getElementById('qrcodeContainer');
+        const ticketInfoDiv = document.getElementById('ticketInfo');
+        const saveQrButton = document.getElementById('saveQrButton');
+        const guestNameInput = document.getElementById('guestName');
+
+        function showLoader(container) {
+            container.innerHTML = '<div class="loader"></div>';
+        }
+
+        async function generateTicket() {
+            const guestName = guestNameInput.value.trim();
+            showLoader(qrcodeContainer);
+            ticketInfoDiv.style.display = 'none';
+            ticketInfoDiv.innerHTML = '';
+            saveQrButton.style.display = 'none';
+            currentQRCodeDataForSave = null;
+
+            const formData = new FormData();
+            formData.append('action', 'generateTicket');
+            formData.append('guestName', guestName);
+
+            try {
+                const response = await fetch(WEB_APP_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+
+                if (result.success) {
+                    qrcodeContainer.innerHTML = ''; // Clear loader
+                    if (currentQRCodeInstance) {
+                        currentQRCodeInstance.clear();
+                    }
+                    currentQRCodeInstance = new QRCode(qrcodeContainer, {
+                        text: result.qrCodeData,
+                        width: 200,
+                        height: 200,
+                        colorDark : "#000000",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.H
+                    });
+                    currentQRCodeDataForSave = result.qrCodeData;
+
+                    ticketInfoDiv.innerHTML = `
+                        <p><i class="fas fa-check-circle" style="color: green;"></i> تم إنشاء التذكرة بنجاح!</p>
+                        <p><strong><i class="fas fa-id-card"></i> معرف التذكرة:</strong> ${result.ticketId}</p>
+                        <p><strong><i class="fas fa-user"></i> اسم الضيف:</strong> ${result.guestName}</p>
+                        <p><strong><i class="fas fa-qrcode"></i> بيانات QR:</strong> ${result.qrCodeData}</p>
+                    `;
+                    ticketInfoDiv.style.display = 'block';
+                    saveQrButton.style.display = 'inline-flex';
+                    guestNameInput.value = '';
+                    fetchReport();
+                } else {
+                    qrcodeContainer.innerHTML = `<p style="color: red;">فشل إنشاء التذكرة: ${result.message || 'خطأ غير معروف'}</p>`;
+                }
+            } catch (error) {
+                console.error("Error generating ticket:", error);
+                qrcodeContainer.innerHTML = `<p style="color: red;">خطأ في الشبكة أو الخادم: ${error.message}</p>`;
+            }
+        }
+
+        function saveQRCodeImage() {
+            const qrImageElement = qrcodeContainer.querySelector('img');
+            if (qrImageElement && qrImageElement.src) {
+                const link = document.createElement('a');
+                // اسم الملف: إذا كان currentQRCodeDataForSave يحتوي على اسم الضيف، استخدمه، وإلا استخدم جزء من المعرف
+                let filename = `Ticket_QR_${currentQRCodeDataForSave ? currentQRCodeDataForSave.substring(0,8) : Date.now()}.png`;
+                link.download = filename;
+                link.href = qrImageElement.src;
+                document.body.appendChild(link); // Required for Firefox
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert("لم يتم إنشاء QR Code بعد أو لا يمكن الوصول إليه للحفظ.");
+            }
+        }
+
+        async function fetchReport() {
+            const invitedCountSpan = document.getElementById('invitedCount');
+            const attendedCountSpan = document.getElementById('attendedCount');
+            invitedCountSpan.textContent = 'جاري...';
+            attendedCountSpan.textContent = 'جاري...';
+
+            const formData = new FormData();
+            formData.append('action', 'getReport');
+
+            try {
+                const response = await fetch(WEB_APP_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+
+                if (result.success) {
+                    invitedCountSpan.textContent = result.invited;
+                    attendedCountSpan.textContent = result.attended;
+                } else {
+                    invitedCountSpan.textContent = 'خطأ';
+                    attendedCountSpan.textContent = 'خطأ';
+                    alert(`فشل جلب التقرير: ${result.message || 'خطأ غير معروف'}`);
+                }
+            } catch (error) {
+                console.error("Error fetching report:", error);
+                invitedCountSpan.textContent = 'خطأ';
+                attendedCountSpan.textContent = 'خطأ';
+                alert(`خطأ في الشبكة عند جلب التقرير: ${error.message}`);
+            }
+        }
+        window.onload = fetchReport; // Fetch report on page load
+    </script>
+</body>
+</html>

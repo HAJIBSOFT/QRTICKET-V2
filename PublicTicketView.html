@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تذكرة </title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Tajawal:wght@400;500;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-dark: #020617;
+            --card-bg: #1e293b;
+            --primary: #6366f1;
+            --accent: #a855f7;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --gold: #fbbf24;
+            
+            /* حالات التذكرة */
+            --st-valid: #10b981;
+            --st-used: #f59e0b;
+            --st-invalid: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--bg-dark);
+            /* خلفية فنية غامقة */
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.15) 0%, transparent 40%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        /* --- الحاوية --- */
+        .ticket-container {
+            position: relative;
+            width: 100%;
+            max-width: 360px;
+            z-index: 1;
+            animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: none;
+        }
+        .ticket-container.visible { display: block; }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.9) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* --- البطاقة الأساسية --- */
+        .ticket-card {
+            background: var(--card-bg);
+            border-radius: 30px;
+            position: relative;
+            overflow: hidden;
+            /* تأثير Noise */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            z-index: 2;
+        }
+
+        /* --- الإطار المضيء المتحرك (Border Glow Animation) --- */
+        .ticket-container::before {
+            content: "";
+            position: absolute;
+            inset: -3px;
+            border-radius: 32px;
+            background: linear-gradient(45deg, var(--primary), var(--accent), var(--primary));
+            z-index: -1;
+            filter: blur(10px);
+            opacity: 0.7;
+            animation: borderRotate 4s linear infinite;
+        }
+        @keyframes borderRotate {
+            0% { filter: hue-rotate(0deg) blur(10px); }
+            100% { filter: hue-rotate(360deg) blur(10px); }
+        }
+
+        /* --- الرأس (Header) --- */
+        .ticket-header {
+            padding: 40px 20px 20px;
+            text-align: center;
+            background: linear-gradient(to bottom, rgba(15, 23, 42, 0.5), transparent);
+        }
+
+        .logo-icon {
+            font-size: 2rem;
+            color: var(--gold);
+            margin-bottom: 10px;
+            display: inline-block;
+            filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.4));
+        }
+
+        .event-title {
+            font-family: 'Cairo', sans-serif;
+            font-weight: 900;
+            font-size: 1.8rem;
+            line-height: 1.2;
+            background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .event-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* --- المحتوى (Body) --- */
+        .ticket-body {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .guest-label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--accent);
+            margin-bottom: 5px;
+            font-weight: bold;
+            opacity: 0.8;
+        }
+
+        .guest-name {
+            font-family: 'Cairo', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 10px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        /* --- الفاصل الجمالي --- */
+        .divider {
+            height: 1px;
+            width: 60%;
+            margin: 20px auto;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        }
+
+        /* --- الباركود والحالة --- */
+        .ticket-footer {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 30px 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .qr-frame {
+            position: relative;
+            padding: 12px;
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.15);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        /* خط الليزر فوق الباركود */
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 3px;
+            background: var(--st-invalid); /* أحمر ليزري */
+            box-shadow: 0 0 4px var(--st-invalid);
+            top: 0;
+            left: 0;
+            animation: scanMove 2.5s infinite linear;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        @keyframes scanMove {
+            0% { top: 0; } 50% { top: 100%; } 100% { top: 0; }
+        }
+
+        .ticket-id {
+            font-family: monospace;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+        }
+
+        /* --- الحالة التفاعلية --- */
+        .status-indicator {
+            padding: 8px 24px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        /* ألوان الحالة المتغيرة */
+        .st-valid .status-indicator { color: var(--st-valid); border-color: var(--st-valid); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2); }
+        .st-valid .ticket-container::before { background: linear-gradient(45deg, var(--st-valid), #34d399, var(--st-valid)); }
+        
+        .st-used .status-indicator { color: var(--st-used); border-color: var(--st-used); }
+        .st-used .ticket-container::before { background: linear-gradient(45deg, var(--st-used), #fbbf24, var(--st-used)); }
+        
+        .st-invalid .status-indicator { color: var(--st-invalid); border-color: var(--st-invalid); }
+        .st-invalid .ticket-container::before { background: linear-gradient(45deg, var(--st-invalid), #f87171, var(--st-invalid)); }
+
+        /* --- شاشات التحميل والخطأ --- */
+        #loadingIndicator, #errorIndicator {
+            position: absolute; text-align: center; width: 100%;
+        }
+        .loader {
+            width: 48px; height: 48px;
+            border: 3px solid #FFF; border-bottom-color: transparent;
+            border-radius: 50%; display: inline-block;
+            box-sizing: border-box; animation: rotation 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- الطباعة --- */
+        @media print {
+            body { background: white; -webkit-print-color-adjust: exact; }
+            .ticket-container { box-shadow: none; animation: none; max-width: 100%; margin: 0; }
+            .ticket-container::before { display: none; } /* إخفاء التوهج */
+            .ticket-card { background: white; border: 2px solid #000; box-shadow: none; border-radius: 0; color: black; }
+            .event-title, .guest-name { color: black !important; background: none; -webkit-text-fill-color: initial; }
+            .logo-icon, .divider { display: none; }
+            .status-indicator { border: 1px solid black !important; color: black !important; box-shadow: none !important; }
+            .scan-line { display: none; }
+            #loadingIndicator, #errorIndicator { display: none; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Loading -->
+    <div id="loadingIndicator">
+        <span class="loader"></span>
+        <p style="color: var(--text-muted);">جاري تجهيز التذكرة...</p>
+    </div>
+
+    <!-- Error -->
+    <div id="errorIndicator" style="display: none;">
+        <i class="fas fa-bug" style="font-size: 3rem; color: var(--st-invalid); margin-bottom: 15px;"></i>
+        <h3 style="color: white;">عذراً</h3>
+        <p id="errorText" style="color: var(--text-muted); margin-bottom: 20px;">حدث خطأ ما</p>
+        <button onclick="location.reload()" style="padding: 10px 20px; border-radius: 8px; border:none; cursor:pointer;">تحديث</button>
+    </div>
+
+    <!-- Ticket Container -->
+    <div class="ticket-container" id="ticketContainer">
+        <div class="ticket-card" id="ticketCard">
+            
+            <!-- Header -->
+            <div class="ticket-header">
+                <i class="fas fa-crown logo-icon"></i>
+                <div class="event-title" id="eventTitle">...</div>
+                <div class="event-subtitle">يرجى إبراز هذه الدعوة عند بوابة الدخول.</div>
+				<div class="event-subtitle">الدعوة شخصية وصالحة لشخص واحد فقط.</div>
+            </div>
+
+            <!-- Body (Centered) -->
+            <div class="ticket-body">
+                <span class="guest-label">حامل الدعوة</span>
+                <div class="guest-name" id="guestName">...</div>
+                
+                <div class="divider"></div>
+            </div>
+
+            <!-- Footer -->
+            <div class="ticket-footer">
+                <div class="qr-frame">
+                    <div id="qrcodeDisplay"></div>
+                    <div class="scan-line"></div> <!-- خط الليزر -->
+                </div>
+                
+                <div class="ticket-id" id="ticketIdText">ID: ...</div>
+
+                <div class="status-indicator" id="statusBadge">
+                    <i class="fas fa-circle-notch fa-spin"></i> جاري التحقق...
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzY_TiGblWKfYigUi3C9unAnaBWAlbRqs7SVgYdIvriLh7wm494f-AXnpdRN6nnbbRe/exec';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadingEl = document.getElementById('loadingIndicator');
+            const errorEl = document.getElementById('errorIndicator');
+            const containerEl = document.getElementById('ticketContainer');
+            const ticketCardEl = document.getElementById('ticketCard');
+
+            // Elements to populate
+            const eventTitleEl = document.getElementById('eventTitle');
+            const guestNameEl = document.getElementById('guestName');
+            const ticketIdTextEl = document.getElementById('ticketIdText');
+            const qrcodeDisplayEl = document.getElementById('qrcodeDisplay');
+            const statusBadgeEl = document.getElementById('statusBadge');
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const qrDataParam = urlParams.get('qrData');
+            const eventNameParam = urlParams.get('eventName') || "حفل خاص";
+
+            if (!qrDataParam) {
+                showError("الرابط غير صالح (qrData missing)");
+                return;
+            }
+
+            const fetchUrl = `${GOOGLE_SCRIPT_URL}?action=getTicketData&qrData=${encodeURIComponent(qrDataParam)}&eventName=${encodeURIComponent(eventNameParam)}`;
+
+            fetch(fetchUrl)
+                .then(res => {
+                    if (!res.ok) throw new Error("Server Error");
+                    return res.json();
+                })
+                .then(data => {
+                    loadingEl.style.display = 'none';
+                    containerEl.classList.add('visible');
+
+                    if (data.success || (data.message && data.qrData)) {
+                        document.title = data.guestName || "تذكرة";
+                        
+                        // تعبئة البيانات
+                        eventTitleEl.innerText = data.eventName || eventNameParam;
+                        guestNameEl.innerText = data.guestName || "ضيف مجهول";
+                        ticketIdTextEl.innerText = data.qrData;
+
+                        // QR Code
+                        qrcodeDisplayEl.innerHTML = '';
+                        try {
+                            new QRCode(qrcodeDisplayEl, {
+                                text: data.qrData,
+                                width: 140, height: 140,
+                                colorDark: "#000", colorLight: "#fff",
+                                correctLevel: QRCode.CorrectLevel.H
+                            });
+                        } catch(e) {}
+
+                        // تحديث الحالة والألوان
+                        updateStatus(data.ticketStatus);
+                    } else {
+                        showError("التذكرة غير موجودة بالنظام");
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showError("فشل تحميل البيانات، تأكد من الإنترنت");
+                });
+
+            function updateStatus(status) {
+                // تنظيف الكلاسات السابقة
+                ticketCardEl.classList.remove('st-valid', 'st-used', 'st-invalid');
+                let icon, text;
+
+                status = (status || '').toLowerCase().trim();
+
+                if (['valid', 'صالحة'].includes(status)) {
+                    ticketCardEl.classList.add('st-valid');
+                    icon = '<i class="fas fa-check-circle"></i>';
+                    text = 'تذكرة صالحة';
+                } else if (['used', 'attended', 'مستخدمة'].includes(status)) {
+                    ticketCardEl.classList.add('st-used');
+                    icon = '<i class="fas fa-user-check"></i>';
+                    text = 'تم الحضور';
+                } else {
+                    ticketCardEl.classList.add('st-invalid');
+                    icon = '<i class="fas fa-ban"></i>';
+                    text = 'غير صالحة';
+                }
+                statusBadgeEl.innerHTML = `${icon} ${text}`;
+            }
+
+            function showError(msg) {
+                loadingEl.style.display = 'none';
+                containerEl.style.display = 'none';
+                errorEl.style.display = 'block';
+                document.getElementById('errorText').innerText = msg;
+            }
+        });
+    </script>
+</body>
+</html>

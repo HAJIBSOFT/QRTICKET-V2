@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HAJIB SCANNER | الماسح الضوئي</title>
+
+    <!-- مكتبة QR -->
+    <script src="js/jsQR.js"></script> 
+
+    <!-- الخطوط والأيقونات -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&family=Tajawal:wght@400;500;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --secondary: #818cf8;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --dark-bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--dark-bg);
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* --- Header Design --- */
+        header {
+            width: 100%;
+            padding: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 {
+            font-family: 'Cairo', sans-serif;
+            font-weight: 800;
+            font-size: 1.5rem;
+            letter-spacing: 1px;
+            background: linear-gradient(135deg, #a5b4fc 0%, #ffffff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .subtitle { font-size: 0.9rem; color: #94a3b8; }
+
+        /* --- Main Container --- */
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            padding: 0 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-bottom: 80px;
+        }
+
+        /* --- Mode Toggle --- */
+        .mode-switch-container {
+            margin: 20px 0;
+            width: 100%;
+        }
+        
+        #toggleModeButton {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: #e2e8f0;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* --- Scanner Box --- */
+        #video-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1/1; /* مربع */
+            background: #000;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--glass-border);
+            margin-bottom: 25px;
+        }
+
+        #videoElement { width: 100%; height: 100%; object-fit: cover; }
+        #detectionCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        
+        /* Laser Animation Overlay */
+        .scanner-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            pointer-events: none;
+        }
+        .scanner-laser {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: var(--success);
+            box-shadow: 0 0 15px var(--success), 0 0 30px var(--success);
+            top: 0;
+            animation: scan 2.5s infinite linear;
+            opacity: 0.6;
+            display: none; /* يظهر فقط عند تفعيل الكاميرا */
+        }
+        @keyframes scan {
+            0% { top: 10%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 90%; opacity: 0; }
+        }
+        .corner-marker {
+            position: absolute;
+            width: 40px; height: 40px;
+            border: 4px solid var(--secondary);
+            border-radius: 4px;
+            opacity: 0.8;
+        }
+        .tl { top: 20px; left: 20px; border-right: none; border-bottom: none; }
+        .tr { top: 20px; right: 20px; border-left: none; border-bottom: none; }
+        .bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+        .br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
+
+        /* --- Buttons --- */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            width: 100%;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            grid-column: span 2;
+            background: linear-gradient(135deg, var(--primary), #4338ca);
+            color: white;
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-primary:active { transform: scale(0.98); }
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: #cbd5e1;
+            padding: 14px;
+            border-radius: 14px;
+            font-weight: 600;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-stop { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: rgba(239, 68, 68, 0.3); }
+
+        /* --- Manual Input --- */
+        #manualTicketLookup {
+            display: none;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 20px;
+            margin-top: 20px;
+            border: 1px solid var(--glass-border);
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; }}
+
+        input[type="text"] {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            padding: 15px;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            margin: 10px 0 15px;
+            text-align: center;
+        }
+        input:focus { border-color: var(--secondary); }
+
+        /* --- POPUP MODAL (THE NEW FEATURE) --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none; /* مخفي افتراضياً */
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-card {
+            background: #1e293b;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 24px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-overlay.active .modal-card { transform: scale(1); }
+
+        /* Modal States */
+        .modal-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        
+        .loader-ring {
+            width: 60px; height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .modal-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 10px; color: white; }
+        .modal-desc { color: #94a3b8; font-size: 1rem; line-height: 1.6; margin-bottom: 25px; word-break: break-word; }
+        .modal-desc strong { color: white; }
+
+        .btn-modal {
+            width: 100%;
+            padding: 15px;
+            border-radius: 12px;
+            background: #334155;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        
+        /* Status Colors */
+        .state-success .modal-icon { color: var(--success); }
+        .state-success .btn-modal { background: var(--success); }
+        
+        .state-error .modal-icon { color: var(--error); }
+        .state-error .btn-modal { background: var(--error); }
+        
+        .state-warning .modal-icon { color: var(--warning); }
+        .state-warning .btn-modal { background: var(--warning); }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1><i class="fas fa-qrcode"></i> HAJIB TICKET</h1>
+        <div class="subtitle">نظام التحقق الذكي</div>
+    </header>
+
+    <div class="app-container">
+        
+        <!-- مفتاح تبديل الوضع -->
+        <div class="mode-switch-container">
+            <button id="toggleModeButton">
+                <i class="fas fa-sync-alt"></i>
+                <span id="modeText">الوضع الحالي: جاري التحميل...</span>
+            </button>
+        </div>
+
+        <!-- منطقة الكاميرا -->
+        <div id="video-wrapper">
+            <video id="videoElement" playsinline autoplay muted></video>
+            <canvas id="detectionCanvas"></canvas>
+            <canvas id="qrAnalysisCanvas" style="display: none;"></canvas>
+            
+            <!-- طبقة التصميم فوق الكاميرا -->
+            <div class="scanner-overlay">
+                <div class="scanner-laser" id="scannerLaser"></div>
+                <div class="corner-marker tl"></div>
+                <div class="corner-marker tr"></div>
+                <div class="corner-marker bl"></div>
+                <div class="corner-marker br"></div>
+            </div>
+        </div>
+
+        <div id="loadingMessage" style="display:none; color:#94a3b8; margin-bottom:10px;">جاري إعداد الكاميرا...</div>
+
+        <!-- الأزرار -->
+        <div class="controls-grid">
+            <button id="startScanButton" class="btn-primary">
+                <i class="fas fa-camera"></i> تشغيل الكاميرا
+            </button>
+            
+            <button id="stopScanButton" class="btn-primary btn-stop" style="display: none;">
+                <i class="fas fa-stop-circle"></i> إيقاف
+            </button>
+
+            <button id="showLookupButton" class="btn-secondary">
+                <i class="fas fa-keyboard"></i> إدخال يدوي
+            </button>
+            <button onclick="location.reload()" class="btn-secondary">
+                <i class="fas fa-redo"></i> تحديث
+            </button>
+        </div>
+
+        <!-- الإدخال اليدوي -->
+        <div id="manualTicketLookup">
+            <label style="color: #cbd5e1; display: block; margin-bottom: 5px;">رقم التذكرة / الكود:</label>
+            <input type="text" id="manualTicketId" placeholder="XXXXXXXX-XXXX">
+            <button id="manualLookupButton" class="btn-primary" style="width:100%; background: var(--success);">
+                <i class="fas fa-search"></i> تحقق الآن
+            </button>
+        </div>
+
+        <!-- عنصر مخفي للحفاظ على التوافق مع الكود القديم إن وجد، لكننا لن نستخدمه للعرض -->
+        <div id="scan-status-wrapper" style="display: none;"></div>
+
+    </div>
+
+    <!-- ============== POPUP MODAL (النافذة المنبثقة الجديدة) ============== -->
+    <div id="resultModal" class="modal-overlay">
+        <div class="modal-card">
+            <div id="modalContent">
+                <!-- المحتوى سيتغير ديناميكياً هنا -->
+            </div>
+            <button onclick="closeModal()" class="btn-modal" id="modalCloseBtn">مسح التالي</button>
+        </div>
+    </div>
+
+    <!-- الأصوات -->
+    <audio id="successSound" src="success.mp3" preload="auto"></audio>
+    <audio id="errorSound" src="error.mp3" preload="auto"></audio>
+    <audio id="usedSound" src="used.mp3" preload="auto"></audio>
+    <audio id="infoSound" src="success.mp3" preload="auto"></audio>
+
+    <script>
+        // ---!!! الرابط لتطبيق Google Apps Script !!!---
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzcJyxjZ4DcOKkboUYvDOrkWs5PVsKScetEzEvSXwzIL3sFGb0JHHVpTzZRksiaBJsW/exec';
+
+        // المتغيرات وعناصر الصفحة
+        const video = document.getElementById('videoElement');
+        const qrAnalysisCanvasElement = document.getElementById('qrAnalysisCanvas');
+        const qrAnalysisCanvas = qrAnalysisCanvasElement.getContext('2d', { willReadFrequently: true });
+        const detectionCanvasElement = document.getElementById('detectionCanvas');
+        const detectionCanvas = detectionCanvasElement.getContext('2d');
+        const videoWrapper = document.getElementById('video-wrapper');
+        const scannerLaser = document.getElementById('scannerLaser');
+
+        const scanStatusWrapper = document.getElementById('scan-status-wrapper'); // Keep for safety
+        const loadingMessage = document.getElementById('loadingMessage');
+        const startScanButton = document.getElementById('startScanButton');
+        const stopScanButton = document.getElementById('stopScanButton');
+        const toggleModeButton = document.getElementById('toggleModeButton');
+        const manualLookupButton = document.getElementById('manualLookupButton');
+        const showLookupButton = document.getElementById('showLookupButton');
+        const manualTicketIdInput = document.getElementById('manualTicketId');
+
+        // Modal Elements
+        const resultModal = document.getElementById('resultModal');
+        const modalContent = document.getElementById('modalContent');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+        const successSound = document.getElementById('successSound');
+        const errorSound = document.getElementById('errorSound');
+        const usedSound = document.getElementById('usedSound');
+        const infoSound = document.getElementById('infoSound');
+        const audioElements = [successSound, errorSound, usedSound, infoSound];
+        
+        let audioUnlocked = false;
+        let stream = null;
+        let animationFrameId = null;
+        let processingQrCode = false;
+        const SCAN_RESTART_DELAY = 1000; // قللت التأخير لأننا سنعتمد على إغلاق المودال
+        let lastDetectedQrLocation = null;
+
+        let currentOperationMode = 'scan';
+        const SCAN_MODE_TEXT_BTN = "مسح للدخول";
+        const CHECK_MODE_TEXT_BTN = "تحقق من الصلاحية";
+
+        // --- دوال الصوت والتشغيل ---
+        function unlockAudio() {
+            if (audioUnlocked) return;
+            audioElements.forEach(audio => {
+                if (audio) { audio.play().then(() => { audio.pause(); audio.currentTime = 0; }).catch(() => {}); }
+            });
+            audioUnlocked = true;
+        }
+
+        function playSound(soundElement) {
+            if (soundElement) {
+                soundElement.currentTime = 0;
+                soundElement.play().catch(e => console.warn(e));
+            }
+        }
+
+        // --- دوال المودال (النافذة المنبثقة) ---
+        function showModalLoading(text) {
+            resultModal.className = 'modal-overlay active'; // Show
+            modalContent.parentElement.className = 'modal-card'; // Reset colors
+            modalCloseBtn.style.display = 'none'; // Hide button while loading
+            
+            modalContent.innerHTML = `
+                <div class="loader-ring"></div>
+                <div class="modal-title">جاري المعالجة...</div>
+                <div class="modal-desc">${text}</div>
+            `;
+        }
+
+        function showModalResult(type, title, messageHtml) {
+            resultModal.className = 'modal-overlay active';
+            modalCloseBtn.style.display = 'block';
+            modalCloseBtn.innerText = "مسح التالي";
+
+            // تحديد الستايل والأيقونة بناءً على النوع
+            let iconClass = "fa-info-circle";
+            let stateClass = "state-info";
+
+            if (type === 'success') {
+                iconClass = "fa-check-circle";
+                stateClass = "state-success";
+            } else if (type === 'error') {
+                iconClass = "fa-times-circle";
+                stateClass = "state-error";
+            } else if (type === 'warning') {
+                iconClass = "fa-exclamation-triangle";
+                stateClass = "state-warning";
+            }
+
+            modalContent.parentElement.className = `modal-card ${stateClass}`;
+            
+            modalContent.innerHTML = `
+                <i class="fas ${iconClass} modal-icon"></i>
+                <div class="modal-title">${title}</div>
+                <div class="modal-desc">${messageHtml}</div>
+            `;
+        }
+
+    function closeModal() {
+    // 1. إخفاء النافذة
+    resultModal.classList.remove('active');
+
+    // 2. السماح بالمسح مرة أخرى
+    processingQrCode = false;
+    lastDetectedQrLocation = null;
+
+    // 3. إعادة تشغيل حلقة الكاميرا فوراً (هذا هو الجزء الذي كان يسبب المشكلة)
+    if (stream && stream.active) {
+        // إلغاء أي عملية سابقة عالقة لضمان عدم التكرار
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        
+        // تشغيل المسح من جديد
+        animationFrameId = requestAnimationFrame(tick);
+    }
+}
+
+        // --- الرسم على الكانفاس (كما هو) ---
+        function drawLine(begin, end, color) {
+            detectionCanvas.beginPath();
+            detectionCanvas.moveTo(begin.x, begin.y);
+            detectionCanvas.lineTo(end.x, end.y);
+            detectionCanvas.lineWidth = 4;
+            detectionCanvas.strokeStyle = color;
+            detectionCanvas.lineCap = "round";
+            detectionCanvas.stroke();
+        }
+
+        function tick() {
+            if (processingQrCode) return; // توقف عن الرسم إذا كنا نعالج كود
+
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                loadingMessage.style.display = 'none';
+                scannerLaser.style.display = 'block'; // Show laser
+
+                if (qrAnalysisCanvasElement.width !== video.videoWidth) {
+                    qrAnalysisCanvasElement.width = video.videoWidth;
+                    qrAnalysisCanvasElement.height = video.videoHeight;
+                    detectionCanvasElement.width = videoWrapper.offsetWidth;
+                    detectionCanvasElement.height = videoWrapper.offsetHeight;
+                }
+
+                qrAnalysisCanvas.drawImage(video, 0, 0, qrAnalysisCanvasElement.width, qrAnalysisCanvasElement.height);
+                detectionCanvas.clearRect(0, 0, detectionCanvasElement.width, detectionCanvasElement.height);
+
+                try {
+                    const imageData = qrAnalysisCanvas.getImageData(0, 0, qrAnalysisCanvasElement.width, qrAnalysisCanvasElement.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+
+                    if (code && code.data) {
+                        lastDetectedQrLocation = code.location;
+                        // رسم مربع حول الكود
+                        const scaleX = detectionCanvasElement.width / qrAnalysisCanvasElement.width;
+                        const scaleY = detectionCanvasElement.height / qrAnalysisCanvasElement.height;
+                        
+                        const loc = {
+                            topLeft: { x: code.location.topLeftCorner.x * scaleX, y: code.location.topLeftCorner.y * scaleY },
+                            topRight: { x: code.location.topRightCorner.x * scaleX, y: code.location.topRightCorner.y * scaleY },
+                            bottomRight: { x: code.location.bottomRightCorner.x * scaleX, y: code.location.bottomRightCorner.y * scaleY },
+                            bottomLeft: { x: code.location.bottomLeftCorner.x * scaleX, y: code.location.bottomLeftCorner.y * scaleY },
+                        };
+
+                        drawLine(loc.topLeft, loc.topRight, "#10b981");
+                        drawLine(loc.topRight, loc.bottomRight, "#10b981");
+                        drawLine(loc.bottomRight, loc.bottomLeft, "#10b981");
+                        drawLine(loc.bottomLeft, loc.topLeft, "#10b981");
+
+                        processingQrCode = true; // Stop scanning logic
+                        processScannedCode(code.data, 'scan');
+                    }
+                } catch (err) { console.error(err); }
+            }
+            if (stream && stream.active) {
+                animationFrameId = requestAnimationFrame(tick);
+            }
+        }
+
+        // --- تحديث الواجهة (تم التعديل لتدعم المودال) ---
+        function updateScanStatus(htmlMessage, type = 'info', playDefaultSound = false) {
+            // هذه الدالة كانت تعرض النص في الصفحة، الآن لا نحتاجها بنفس الشكل
+            // لكن سنتركها للأخطاء البسيطة
+            console.log(type, htmlMessage);
+            if (playDefaultSound) {
+                if(type === 'success') playSound(successSound);
+                else if (type === 'error') playSound(errorSound);
+                else if (type === 'warning') playSound(usedSound);
+            }
+        }
+
+        function updateModeButtonVisuals() {
+            const modeText = document.getElementById('modeText');
+            if (currentOperationMode === 'scan') {
+                modeText.innerText = SCAN_MODE_TEXT_BTN;
+                toggleModeButton.style.borderColor = 'var(--glass-border)';
+            } else {
+                modeText.innerText = CHECK_MODE_TEXT_BTN;
+                toggleModeButton.style.borderColor = 'var(--warning)';
+            }
+        }
+
+        toggleModeButton.addEventListener('click', () => {
+            unlockAudio();
+            currentOperationMode = (currentOperationMode === 'scan') ? 'check' : 'scan';
+            updateModeButtonVisuals();
+        });
+
+        // --- الكاميرا ---
+        async function startCamera() {
+            unlockAudio();
+            if (stream && stream.active) return;
+            
+            startScanButton.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> تشغيل...';
+            loadingMessage.style.display = 'block';
+
+            try {
+                const constraints = { video: { facingMode: "environment" } };
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    video.play();
+                    startScanButton.style.display = 'none';
+                    stopScanButton.style.display = 'flex';
+                    animationFrameId = requestAnimationFrame(tick);
+                };
+            } catch (err) {
+                console.error(err);
+                startScanButton.innerHTML = '<i class="fas fa-camera"></i> تشغيل الكاميرا';
+                alert("تعذر الوصول للكاميرا: " + err.message);
+            }
+        }
+
+        function stopCamera() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+            scannerLaser.style.display = 'none';
+            stopScanButton.style.display = 'none';
+            startScanButton.style.display = 'flex';
+            startScanButton.innerHTML = '<i class="fas fa-camera"></i> تشغيل الكاميرا';
+            processingQrCode = false;
+        }
+
+        startScanButton.addEventListener('click', startCamera);
+        stopScanButton.addEventListener('click', stopCamera);
+
+        // --- معالجة الكود (المنطق الأساسي) ---
+        async function processScannedCode(qrCodeData, inputSource = 'scan') {
+            
+            // 1. إظهار المودال (تحميل)
+            let actionText = (currentOperationMode === 'scan') ? 'جاري التحقق وتسجيل الدخول...' : 'جاري فحص صلاحية التذكرة...';
+            showModalLoading(`الكود: <strong>${qrCodeData}</strong><br>${actionText}`);
+
+            let endpointAction = (currentOperationMode === 'check') ? 'checkTicketStatus' : 'scanTicket';
+            const formData = new FormData();
+            formData.append('action', endpointAction);
+            formData.append('qrCodeData', qrCodeData);
+
+            try {
+                const response = await fetch(WEB_APP_URL, { method: 'POST', body: formData });
+                if (!response.ok) throw new Error("خطأ في الخادم");
+                
+                const result = await response.json();
+                
+                // 2. تحليل النتيجة وعرضها في المودال
+                let title = "";
+                let details = "";
+                let type = "info";
+                let sound = infoSound;
+
+                if (result.success) {
+                    if (result.status === "valid_and_used") {
+                        title = "تم الدخول بنجاح";
+                        details = `الضيف: <strong>${result.guestName}</strong><br>تم التسجيل: ${result.scannedAt}`;
+                        type = "success";
+                        sound = successSound;
+                    } else if (result.status === "valid_not_used") {
+                        title = "تذكرة صالحة";
+                        details = `الضيف: <strong>${result.guestName}</strong><br>لم تستخدم بعد.`;
+                        type = "success";
+                        sound = infoSound;
+                    } else if (result.status === "already_used") {
+                        title = "تذكرة مستخدمة!";
+                        details = `الضيف: ${result.guestName}<br>الدخول السابق: ${result.scannedAt}`;
+                        type = "warning";
+                        sound = usedSound;
+                    } else {
+                        title = "عملية ناجحة";
+                        details = result.message;
+                        type = "info";
+                    }
+                } else {
+                    type = "error";
+                    sound = errorSound;
+                    if (result.status === "not_found") {
+                        title = "تذكرة غير موجودة";
+                        details = "هذا الكود غير مسجل في النظام.";
+                    } else if (result.status === "already_used") {
+                        title = "مستخدمة مسبقاً";
+                        details = `الضيف: ${result.guestName}<br>تم الدخول في: ${result.scannedAt}`;
+                        type = "warning"; // تحذير بدل خطأ
+                        sound = usedSound;
+                    } else {
+                        title = "فشل العملية";
+                        details = result.message || "حدث خطأ غير معروف";
+                    }
+                }
+
+                // 3. عرض النتيجة النهائية وتشغيل الصوت
+                showModalResult(type, title, details);
+                playSound(sound);
+
+            } catch (error) {
+                showModalResult("error", "خطأ اتصال", "تأكد من الانترنت وحاول مرة أخرى.");
+                playSound(errorSound);
+            }
+            // ملاحظة: لن نقوم بإعادة تفعيل المسح (processingQrCode = false) هنا تلقائياً
+            // لأن المستخدم يجب أن يضغط "مسح التالي" في المودال لإغلاقه والمتابعة.
+        }
+
+        // --- البحث اليدوي ---
+        function toggleManualLookup() {
+            const el = document.getElementById('manualTicketLookup');
+            el.style.display = (el.style.display === 'block') ? 'none' : 'block';
+            if(el.style.display === 'block') { stopCamera(); manualTicketIdInput.focus(); }
+        }
+        showLookupButton.addEventListener('click', toggleManualLookup);
+
+        manualLookupButton.addEventListener('click', () => {
+            const val = manualTicketIdInput.value.trim();
+            if (val) processScannedCode(val, 'manual');
+        });
+
+        // تشغيل أولي
+        updateModeButtonVisuals();
+
+    </script>
+</body>
+</html>
