@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | لوحة التحكم</title>
+    <title>HAJIB | لوحة الإدارة</title>
     
     <!-- مكتبة QR -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -11,489 +11,557 @@
     <!-- الخطوط والأيقونات -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         :root {
-            --bg-dark: #0f172a;
-            --panel-bg: #1e293b;
+            --bg-body: #0f172a;
+            --bg-sidebar: #1e293b;
+            --bg-panel: #1e293b;
             --primary: #6366f1;
-            --accent: #8b5cf6;
+            --primary-hover: #4f46e5;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.08);
             --success: #10b981;
             --danger: #ef4444;
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --border-color: rgba(255, 255, 255, 0.1);
+            --warning: #f59e0b;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
 
         body {
             font-family: 'Tajawal', sans-serif;
-            background-color: var(--bg-dark);
-            background-image: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-                              radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+            background-color: var(--bg-body);
             color: var(--text-main);
+            display: flex;
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
-        /* --- Navbar --- */
-        nav {
-            background: rgba(30, 41, 59, 0.8);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border-color);
-            padding: 15px 30px;
-            position: sticky; top: 0; z-index: 100;
-            display: flex; justify-content: space-between; align-items: center;
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            transition: 0.3s;
         }
-        .brand {
-            font-family: 'Cairo', sans-serif;
-            font-weight: 700;
-            font-size: 1.4rem;
-            background: linear-gradient(90deg, #fff, #cbd5e1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+
+        .logo-area {
+            padding: 25px;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            border-bottom: 1px solid var(--border);
             display: flex; align-items: center; gap: 10px;
         }
 
-        /* --- Layout --- */
-        .container {
-            max-width: 1200px;
-            margin: 30px auto;
-            padding: 0 20px;
-            display: grid;
-            gap: 25px;
-            grid-template-columns: 1fr;
+        .nav-links {
+            list-style: none;
+            padding: 20px 10px;
+            flex: 1;
         }
+
+        .nav-links li { margin-bottom: 8px; }
+
+        .nav-btn {
+            width: 100%;
+            background: none;
+            border: none;
+            padding: 12px 15px;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 1rem;
+            text-align: right;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex; align-items: center; gap: 12px;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--text-main);
+        }
+        .nav-btn.active { border-right: 3px solid var(--primary); }
+
+        /* --- Main Content --- */
+        .main-content {
+            margin-right: 260px; /* Width of sidebar */
+            flex: 1;
+            padding: 30px;
+            width: calc(100% - 260px);
+        }
+
+        .header-top {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 30px;
+        }
+        .page-title { font-size: 1.8rem; font-weight: 700; }
+
+        /* --- Sections (Tabs) --- */
+        .section-view { display: none; animation: fadeIn 0.3s ease; }
+        .section-view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* --- Stats Cards --- */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 20px;
+            margin-bottom: 30px;
         }
-        .stat-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
+        .card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
             border-radius: 16px;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            transition: transform 0.2s;
-        }
-        .stat-card:hover { transform: translateY(-5px); border-color: var(--primary); }
-        .stat-info h3 { font-size: 0.9rem; color: var(--text-muted); font-weight: normal; margin-bottom: 5px; }
-        .stat-info p { font-size: 1.8rem; font-weight: 700; font-family: 'Cairo', sans-serif; }
-        .stat-icon {
-            width: 50px; height: 50px;
-            border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem;
-        }
-        .icon-blue { background: rgba(99, 102, 241, 0.1); color: var(--primary); }
-        .icon-green { background: rgba(16, 185, 129, 0.1); color: var(--success); }
-        .icon-red { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
-
-        /* --- Panels --- */
-        .panel {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
             padding: 25px;
-            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        .card h3 { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px; }
+        .card .value { font-size: 2.2rem; font-weight: 700; }
+        .card .icon-bg {
+            position: absolute; left: -10px; bottom: -10px;
+            font-size: 5rem; opacity: 0.05; transform: rotate(15deg);
+        }
+
+        /* --- Tables & Lists --- */
+        .panel {
+            background: var(--bg-panel);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
         }
         .panel-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border);
             display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 25px; padding-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
         }
-        .panel-title { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-
-        /* --- Inputs --- */
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; color: var(--text-muted); font-size: 0.9rem; }
-        input[type="text"], textarea {
-            width: 100%;
-            background: rgba(0,0,0,0.2);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 12px 15px;
-            color: white;
-            font-family: inherit;
-            transition: all 0.3s;
-        }
-        input:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
-        textarea { min-height: 120px; resize: vertical; }
-
-        /* --- Buttons --- */
-        .btn {
-            padding: 12px 24px;
-            border-radius: 10px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-family: inherit;
-            display: inline-flex; align-items: center; gap: 8px;
-            transition: all 0.2s;
-        }
-        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6); }
-        
-        .btn-secondary { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border-color); }
-        .btn-secondary:hover { background: rgba(255,255,255,0.1); color: white; }
-
-        .btn-sm { padding: 8px 16px; font-size: 0.85rem; }
-
-        /* --- Generated Tickets Grid --- */
-        .tickets-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-            max-height: 500px; overflow-y: auto; padding-right: 5px;
-        }
-        .ticket-item {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--border-color);
-            border-radius: 15px;
-            padding: 15px;
-            text-align: center;
-            position: relative;
-        }
-        .ticket-qr {
-            background: white; padding: 10px; border-radius: 10px;
-            display: inline-block; margin-bottom: 10px;
-        }
-        .ticket-name { font-weight: bold; font-size: 1.1rem; color: var(--text-main); margin-bottom: 5px; }
-        .ticket-code { font-family: monospace; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px; }
-        
-        .btn-group { display: flex; gap: 10px; justify-content: center; }
-        .btn-icon { width: 35px; height: 35px; border-radius: 8px; display: flex; align-items: center; justify-content: center; border:none; cursor: pointer; transition: 0.2s; color: white; }
-        .btn-view { background: rgba(99, 102, 241, 0.2); color: var(--primary); }
-        .btn-view:hover { background: var(--primary); color: white; }
-        .btn-copy { background: rgba(16, 185, 129, 0.2); color: var(--success); }
-        .btn-copy:hover { background: var(--success); color: white; }
-
-        /* --- Tables --- */
-        .table-container { overflow-x: auto; margin-top: 15px; border-radius: 10px; border: 1px solid var(--border-color); }
-        table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-        th, td { padding: 15px; text-align: right; border-bottom: 1px solid var(--border-color); }
-        th { background: rgba(255,255,255,0.05); color: var(--text-muted); font-weight: 600; }
-        tr:last-child td { border-bottom: none; }
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 15px 25px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        th { background: rgba(0,0,0,0.2); color: var(--text-muted); font-weight: 600; font-size: 0.9rem; }
         tr:hover td { background: rgba(255,255,255,0.02); }
 
-        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 6px; }
-        .dot-green { background: var(--success); box-shadow: 0 0 10px var(--success); }
-        .dot-red { background: var(--danger); }
-
-        /* --- Utilities --- */
-        .hidden { display: none; }
-        .message-box { padding: 15px; border-radius: 10px; margin-bottom: 20px; font-weight: 500; }
-        .msg-success { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
-        .msg-error { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+        /* --- Action Buttons --- */
+        .btn {
+            padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;
+            font-family: inherit; font-weight: 600; transition: 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-secondary { background: rgba(255,255,255,0.05); color: var(--text-main); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); }
         
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg-dark); }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .btn-icon {
+            width: 32px; height: 32px; border-radius: 6px; border: none; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            color: white; margin-left: 5px; transition: 0.2s;
+        }
+        .action-whatsapp { background: #25D366; }
+        .action-copy { background: #3b82f6; }
+        .action-download { background: #f59e0b; }
+        .btn-icon:hover { transform: translateY(-2px); opacity: 0.9; }
 
+        /* --- Inputs --- */
+        .form-control {
+            width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border);
+            padding: 12px; border-radius: 10px; color: white; font-family: inherit; margin-bottom: 15px;
+        }
+        textarea.form-control { min-height: 100px; resize: vertical; }
+
+        /* --- Print Area (Hidden by default) --- */
+        #printArea { display: none; }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .sidebar { width: 0; overflow: hidden; }
+            .sidebar.open { width: 260px; }
+            .main-content { margin-right: 0; width: 100%; }
+            .mobile-toggle { display: block; }
+        }
+
+        /* --- Print Styles --- */
         @media print {
-            body { background: white; color: black; }
-            nav, .form-group, .btn, .tickets-grid { display: none; }
-            .panel { border: none; box-shadow: none; color: black; }
-            table { border: 1px solid #000; }
-            th, td { border: 1px solid #ccc; color: black; }
+            body { background: white; color: black; display: block; }
+            .sidebar, .main-content, .btn, .no-print { display: none !important; }
+            #printArea { 
+                display: grid !important; 
+                grid-template-columns: repeat(3, 1fr); 
+                gap: 20px; 
+                padding: 20px; 
+            }
+            .print-ticket {
+                border: 2px dashed #000;
+                padding: 15px;
+                text-align: center;
+                page-break-inside: avoid;
+                border-radius: 10px;
+            }
+            .print-ticket img { max-width: 120px; display: block; margin: 0 auto 10px; }
+            .print-ticket h3 { font-size: 16px; margin-bottom: 5px; }
+            .print-ticket p { font-size: 12px; color: #555; }
         }
     </style>
 </head>
 <body>
 
-    <nav>
-        <div class="brand">
-            <i class="fas fa-shield-alt" style="color: var(--primary);"></i>
-            HAJIB ADMIN
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <i class="fas fa-qrcode"></i> HAJIB ADMIN
         </div>
-        <div style="color: var(--text-muted); font-size: 0.9rem;">
-            <i class="fas fa-circle" style="color: var(--success); font-size: 0.6rem; margin-left: 5px;"></i> متصل
+        <ul class="nav-links">
+            <li><button class="nav-btn active" onclick="switchTab('dashboard', this)"><i class="fas fa-home"></i> الرئيسية</button></li>
+            <li><button class="nav-btn" onclick="switchTab('guests', this)"><i class="fas fa-users"></i> إدارة المدعوين</button></li>
+            <li><button class="nav-btn" onclick="switchTab('generate', this)"><i class="fas fa-magic"></i> إصدار جديد</button></li>
+            <li><button class="nav-btn" onclick="switchTab('reports', this)"><i class="fas fa-chart-pie"></i> التقارير</button></li>
+        </ul>
+        <div style="padding: 20px; font-size: 0.8rem; color: var(--text-muted); text-align: center;">
+            System v2.0
         </div>
-    </nav>
+    </aside>
 
-    <div class="container">
+    <!-- Main Content -->
+    <main class="main-content">
         
-        <!-- Stats Section -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-info">
-                    <h3>إجمالي الدعوات</h3>
-                    <p id="totalInvitedReport">0</p>
-                </div>
-                <div class="stat-icon icon-blue"><i class="fas fa-paper-plane"></i></div>
+        <!-- Dashboard View -->
+        <section id="dashboard" class="section-view active">
+            <div class="header-top">
+                <h1 class="page-title">لوحة المعلومات</h1>
+                <button class="btn btn-secondary" onclick="loadData()"><i class="fas fa-sync-alt"></i> تحديث</button>
             </div>
-            <div class="stat-card">
-                <div class="stat-info">
-                    <h3>تم الحضور</h3>
-                    <p id="totalAttendedReport" style="color: var(--success);">0</p>
-                </div>
-                <div class="stat-icon icon-green"><i class="fas fa-check-circle"></i></div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-info">
-                    <h3>لم يحضروا</h3>
-                    <p id="totalNotAttendedReport" style="color: var(--danger);">0</p>
-                </div>
-                <div class="stat-icon icon-red"><i class="fas fa-user-clock"></i></div>
-            </div>
-        </div>
 
-        <!-- Main Content Grid -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; align-items: start;">
-            
-            <!-- Generation Panel -->
+            <div class="stats-grid">
+                <div class="card">
+                    <h3>إجمالي المدعوين</h3>
+                    <div class="value" id="stat-total">0</div>
+                    <i class="fas fa-users icon-bg"></i>
+                </div>
+                <div class="card" style="border-color: var(--success);">
+                    <h3 style="color: var(--success);">الحضور الفعلي</h3>
+                    <div class="value" id="stat-attended">0</div>
+                    <i class="fas fa-check-circle icon-bg" style="color: var(--success);"></i>
+                </div>
+                <div class="card" style="border-color: var(--danger);">
+                    <h3 style="color: var(--danger);">لم يحضروا</h3>
+                    <div class="value" id="stat-pending">0</div>
+                    <i class="fas fa-clock icon-bg" style="color: var(--danger);"></i>
+                </div>
+            </div>
+
+            <!-- Recent Activity Table (Preview) -->
             <div class="panel">
                 <div class="panel-header">
-                    <div class="panel-title"><i class="fas fa-magic" style="color: var(--accent);"></i> إصدار تذاكر جديدة</div>
+                    <h4><i class="fas fa-history"></i> آخر عمليات الدخول</h4>
                 </div>
-                
-                <div class="form-group">
-                    <label>اسم الحفل / المناسبة</label>
-                    <input type="text" id="eventTitleInput" placeholder="مثال: حفل تكريم المتميزين 2025">
-                </div>
-
-                <div class="form-group">
-                    <label>أسماء الضيوف (كل اسم في سطر)</label>
-                    <textarea id="guestNames" placeholder="أحمد محمد&#10;خالد علي&#10;سارة يوسف"></textarea>
-                </div>
-
-                <button id="generateBatchButton" class="btn btn-primary" style="width: 100%; justify-content: center;">
-                    <i class="fas fa-cogs"></i> بدء الإنشاء
-                </button>
-
-                <div id="generationStatus" style="margin-top: 20px; display: none;"></div>
-            </div>
-
-            <!-- Results Panel (Tickets) -->
-            <div class="panel" style="max-height: 600px; display: flex; flex-direction: column;">
-                <div class="panel-header">
-                    <div class="panel-title"><i class="fas fa-ticket-alt" style="color: var(--success);"></i> التذاكر التي تم إنشاؤها</div>
-                </div>
-                <div id="generatedTicketsContainer" class="tickets-grid">
-                    <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">
-                        <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: 10px; opacity: 0.3;"></i>
-                        <p>لا توجد تذاكر جديدة، قم بإنشاء بعضها من القائمة الجانبية.</p>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Reports Panel -->
-        <div class="panel">
-            <div class="panel-header">
-                <div class="panel-title"><i class="fas fa-chart-bar" style="color: var(--primary);"></i> تقارير الحضور التفصيلية</div>
-                <div style="display: flex; gap: 10px;">
-                    <button id="fetchReportButton" class="btn btn-secondary btn-sm"><i class="fas fa-sync-alt"></i> تحديث البيانات</button>
-                    <button id="printReportButton" class="btn btn-secondary btn-sm"><i class="fas fa-print"></i> طباعة</button>
-                </div>
-            </div>
-
-            <div id="reportLoader" style="display: none; text-align: center; padding: 20px;">
-                <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: var(--primary);"></i>
-            </div>
-
-            <div id="reportDetailsContainer" style="display: none;">
-                
-                <h4 style="margin: 20px 0 10px; color: var(--success);"><i class="fas fa-user-check"></i> الحضور (تم المسح)</h4>
-                <div class="table-container">
-                    <table id="attendedGuestsTable">
+                <div class="table-responsive">
+                    <table id="recent-scans-table">
                         <thead>
-                            <tr>
-                                <th>الاسم</th>
-                                <th>وقت الوصول</th>
-                                <th>الكود</th>
-                            </tr>
+                            <tr><th>الاسم</th><th>الوقت</th><th>الكود</th></tr>
                         </thead>
-                        <tbody></tbody>
+                        <tbody><tr><td colspan="3" style="text-align:center">جاري التحميل...</td></tr></tbody>
                     </table>
                 </div>
+            </div>
+        </section>
 
-                <h4 style="margin: 30px 0 10px; color: var(--danger);"><i class="fas fa-user-times"></i> لم يحضروا بعد</h4>
-                <div class="table-container">
-                    <table id="notAttendedGuestsTable">
+        <!-- Guests Management View -->
+        <section id="guests" class="section-view">
+            <div class="header-top">
+                <h1 class="page-title">قائمة المدعوين</h1>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="printAllTickets()"><i class="fas fa-print"></i> طباعة باركودات الكل</button>
+                    <!-- <button class="btn btn-secondary"><i class="fas fa-file-excel"></i> تصدير Excel</button> -->
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <input type="text" id="searchGuest" class="form-control" style="width: 300px; margin:0;" placeholder="بحث عن اسم..." onkeyup="filterGuests()">
+                </div>
+                <div class="table-responsive">
+                    <table id="all-guests-table">
                         <thead>
                             <tr>
                                 <th>الاسم</th>
                                 <th>الحالة</th>
                                 <th>الكود</th>
+                                <th>إجراءات</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
                 </div>
             </div>
-        </div>
+        </section>
 
-    </div>
+        <!-- Generate View -->
+        <section id="generate" class="section-view">
+            <div class="header-top">
+                <h1 class="page-title">إصدار دعوات جديدة</h1>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div class="panel" style="padding: 25px;">
+                    <label>عنوان المناسبة</label>
+                    <input type="text" id="eventTitle" class="form-control" placeholder="مثال: حفل الزواج">
+                    
+                    <label>أسماء الضيوف (كل اسم في سطر)</label>
+                    <textarea id="newGuestNames" class="form-control" placeholder="محمد أحمد&#10;علي خالد"></textarea>
+                    
+                    <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="generateTickets()">
+                        <i class="fas fa-plus-circle"></i> إنشاء وإضافة للقائمة
+                    </button>
+                    <div id="gen-status" style="margin-top: 15px; display: none;"></div>
+                </div>
+
+                <div class="panel" style="padding: 25px;">
+                    <h4><i class="fas fa-info-circle"></i> تعليمات</h4>
+                    <ul style="margin-right: 20px; margin-top: 10px; color: var(--text-muted); line-height: 1.8;">
+                        <li>أدخل أسماء الضيوف الجدد لإنشاء أكواد QR خاصة بهم.</li>
+                        <li>سيتم حفظ الأسماء تلقائياً في قاعدة البيانات.</li>
+                        <li>يمكنك بعد ذلك الذهاب لتبويب "إدارة المدعوين" لمشاركة الروابط أو طباعتها.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Reports View -->
+        <section id="reports" class="section-view">
+            <div class="header-top">
+                <h1 class="page-title">التقارير التفصيلية</h1>
+                <button class="btn btn-secondary" onclick="window.print()"><i class="fas fa-print"></i> طباعة التقرير</button>
+            </div>
+            <div class="panel">
+                <div class="panel-header"><h4><i class="fas fa-list"></i> سجل الحضور الكامل</h4></div>
+                <div class="table-responsive">
+                    <table id="report-table">
+                        <thead><tr><th>الاسم</th><th>الحالة</th><th>وقت الدخول</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Hidden Print Area for "Print All" -->
+    <div id="printArea"></div>
+
+    <!-- Hidden div for temporary QR generation -->
+    <div id="tempQR" style="display:none;"></div>
 
     <script>
-        // --- CONFIGURATION ---
-        const GOOGLE_SCRIPT_API_URL = 'https://script.google.com/macros/s/AKfycbzcJyxjZ4DcOKkboUYvDOrkWs5PVsKScetEzEvSXwzIL3sFGb0JHHVpTzZRksiaBJsW/exec';
-        const PUBLIC_TICKET_VIEW_BASE_URL = 'https://hajibsoft.github.io/QRTICKET-V2/PublicTicketView.html'; 
-        // ---------------------
-
-        const generateBatchButton = document.getElementById('generateBatchButton');
-        const generatedTicketsContainer = document.getElementById('generatedTicketsContainer');
-        const generationStatusDiv = document.getElementById('generationStatus');
+        // --- إعدادات النظام ---
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzcJyxjZ4DcOKkboUYvDOrkWs5PVsKScetEzEvSXwzIL3sFGb0JHHVpTzZRksiaBJsW/exec'; 
+        const TICKET_BASE_URL = 'https://hajibsoft.github.io/QRTICKET-V2/PublicTicketView.html';
         
-        const fetchReportButton = document.getElementById('fetchReportButton');
-        const printReportButton = document.getElementById('printReportButton');
-        const reportDetailsContainer = document.getElementById('reportDetailsContainer');
-        const reportLoader = document.getElementById('reportLoader');
+        // متغيرات عامة
+        let allGuestsData = []; // لتخزين كافة البيانات محلياً
 
-        function displayMsg(el, msg, type) {
-            el.className = `message-box ${type === 'success' ? 'msg-success' : 'msg-error'}`;
-            el.innerHTML = msg;
-            el.style.display = 'block';
+        // --- التنقل بين التبويبات ---
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            if(btn) btn.classList.add('active');
         }
 
-        // --- Ticket Generation ---
-        generateBatchButton.addEventListener('click', async () => {
-            const names = document.getElementById('guestNames').value.trim();
-            const eventName = document.getElementById('eventTitleInput').value.trim() || "دعوة خاصة";
+        // --- جلب البيانات ---
+        async function loadData() {
+            const dashboardStats = { total: 0, attended: 0, pending: 0 };
+            
+            // UI Loading state
+            document.querySelector('tbody').innerHTML = '<tr><td colspan="4" style="text-align:center"><i class="fas fa-circle-notch fa-spin"></i> جاري تحديث البيانات...</td></tr>';
+
+            const formData = new FormData();
+            formData.append('action', 'getDetailedReport');
+
+            try {
+                const res = await fetch(API_URL, { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (data.success) {
+                    // دمج القائمتين (الحضور والغياب) في قائمة واحدة للمعالجة
+                    const attended = data.attendedGuests.map(g => ({...g, status: 'attended'}));
+                    const notAttended = data.notAttendedGuests.map(g => ({...g, status: 'pending', arrivalTime: '-' }));
+                    
+                    allGuestsData = [...attended, ...notAttended];
+                    
+                    // تحديث الإحصائيات
+                    document.getElementById('stat-total').innerText = data.totalInvited;
+                    document.getElementById('stat-attended').innerText = data.attendedCount;
+                    document.getElementById('stat-pending').innerText = data.notAttendedCount;
+
+                    renderTables();
+                }
+            } catch (err) {
+                console.error(err);
+                alert("تعذر الاتصال بالخادم");
+            }
+        }
+
+        // --- رسم الجداول ---
+        function renderTables() {
+            // 1. جدول المدعوين (الإدارة)
+            const guestsTableBody = document.querySelector('#all-guests-table tbody');
+            guestsTableBody.innerHTML = '';
+            
+            allGuestsData.forEach(guest => {
+                const tr = document.createElement('tr');
+                const ticketLink = `${TICKET_BASE_URL}?qrData=${encodeURIComponent(guest.qrCode)}&eventName=${encodeURIComponent('دعوة خاصة')}`;
+                
+                const statusBadge = guest.status === 'attended' 
+                    ? '<span style="color:var(--success); font-weight:bold"><i class="fas fa-check"></i> حضر</span>' 
+                    : '<span style="color:var(--text-muted)">في الانتظار</span>';
+
+                tr.innerHTML = `
+                    <td style="font-weight:bold;">${guest.name}</td>
+                    <td>${statusBadge}</td>
+                    <td style="font-family:monospace; color:var(--warning)">${guest.qrCode}</td>
+                    <td>
+                        <button class="btn-icon action-whatsapp" title="إرسال واتساب" onclick="shareWhatsapp('${guest.name}', '${ticketLink}')"><i class="fab fa-whatsapp"></i></button>
+                        <button class="btn-icon action-copy" title="نسخ الرابط" onclick="copyToClipboard('${ticketLink}')"><i class="fas fa-copy"></i></button>
+                        <button class="btn-icon action-download" title="تحميل QR" onclick="downloadOneQR('${guest.qrCode}', '${guest.name}')"><i class="fas fa-download"></i></button>
+                    </td>
+                `;
+                guestsTableBody.appendChild(tr);
+            });
+
+            // 2. جدول آخر العمليات (في الرئيسية) - نعرض آخر 5 حضور
+            const recentBody = document.querySelector('#recent-scans-table tbody');
+            recentBody.innerHTML = '';
+            const recentAttended = allGuestsData.filter(g => g.status === 'attended').slice(0, 5);
+            if(recentAttended.length === 0) {
+                recentBody.innerHTML = '<tr><td colspan="3" style="text-align:center">لم يتم تسجيل حضور بعد</td></tr>';
+            } else {
+                recentAttended.forEach(g => {
+                    recentBody.innerHTML += `<tr><td>${g.name}</td><td style="direction:ltr">${g.arrivalTime}</td><td>${g.qrCode}</td></tr>`;
+                });
+            }
+
+            // 3. جدول التقارير
+            const reportBody = document.querySelector('#report-table tbody');
+            reportBody.innerHTML = '';
+            allGuestsData.forEach(g => {
+                reportBody.innerHTML += `<tr><td>${g.name}</td><td>${g.status === 'attended' ? 'حاضر' : 'غائب'}</td><td style="direction:ltr">${g.arrivalTime}</td></tr>`;
+            });
+        }
+
+        // --- البحث/الفلترة ---
+        function filterGuests() {
+            const text = document.getElementById('searchGuest').value.toLowerCase();
+            const rows = document.querySelectorAll('#all-guests-table tbody tr');
+            rows.forEach(row => {
+                const name = row.cells[0].innerText.toLowerCase();
+                row.style.display = name.includes(text) ? '' : 'none';
+            });
+        }
+
+        // --- إنشاء تذاكر جديدة ---
+        async function generateTickets() {
+            const names = document.getElementById('newGuestNames').value.trim();
+            const eventName = document.getElementById('eventTitle').value.trim() || "حدث";
+            const btn = document.querySelector('#generate .btn-primary');
+            const statusDiv = document.getElementById('gen-status');
 
             if (!names) return alert("الرجاء إدخال الأسماء");
 
-            // Loading State
-            generateBatchButton.disabled = true;
-            generateBatchButton.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> جاري الإنشاء...';
-            generationStatusDiv.style.display = 'none';
-
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-cog fa-spin"></i> جاري الإنشاء...';
+            
             const formData = new FormData();
             formData.append('action', 'generateTicketsBatch');
             formData.append('guestNamesList', names);
 
             try {
-                const res = await fetch(GOOGLE_SCRIPT_API_URL, { method: 'POST', body: formData });
+                const res = await fetch(API_URL, { method: 'POST', body: formData });
                 const data = await res.json();
-
-                if (data.success) {
-                    displayMsg(generationStatusDiv, `تم إنشاء ${data.count} تذكرة بنجاح!`, 'success');
-                    
-                    // Clear and Populate Grid
-                    generatedTicketsContainer.innerHTML = '';
-                    data.tickets.forEach(ticket => {
-                        const ticketUrl = `${PUBLIC_TICKET_VIEW_BASE_URL}?qrData=${encodeURIComponent(ticket.qrCodeData)}&eventName=${encodeURIComponent(eventName)}`;
-                        
-                        const card = document.createElement('div');
-                        card.className = 'ticket-item';
-                        
-                        // QR Element
-                        const qrContainer = document.createElement('div');
-                        qrContainer.className = 'ticket-qr';
-                        new QRCode(qrContainer, { text: ticket.qrCodeData, width: 100, height: 100 });
-                        
-                        card.innerHTML = `
-                            <div class="ticket-name">${ticket.guestName}</div>
-                            <div class="ticket-code">${ticket.qrCodeData}</div>
-                            <div class="btn-group">
-                                <button class="btn-icon btn-view" onclick="window.open('${ticketUrl}', '_blank')" title="فتح"><i class="fas fa-external-link-alt"></i></button>
-                                <button class="btn-icon btn-copy" onclick="copyLink('${ticketUrl}', this)" title="نسخ"><i class="fas fa-copy"></i></button>
-                            </div>
-                        `;
-                        card.prepend(qrContainer);
-                        generatedTicketsContainer.appendChild(card);
-                    });
-                    
-                    document.getElementById('guestNames').value = '';
-                    fetchDetailedReport(); // Refresh stats
+                
+                if(data.success) {
+                    alert(`تم إنشاء ${data.count} تذكرة بنجاح!`);
+                    document.getElementById('newGuestNames').value = '';
+                    loadData(); // إعادة تحميل البيانات لتظهر في الجدول
+                    switchTab('guests'); // الانتقال لجدول المدعوين
                 } else {
-                    displayMsg(generationStatusDiv, "فشل الإنشاء: " + data.message, 'error');
+                    alert("خطأ: " + data.message);
                 }
-            } catch (err) {
-                console.error(err);
-                displayMsg(generationStatusDiv, "خطأ اتصال بالخادم", 'error');
+            } catch(e) {
+                alert("فشل الاتصال");
             }
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus-circle"></i> إنشاء وإضافة للقائمة';
+        }
+
+        // --- أدوات المشاركة ---
+        function shareWhatsapp(name, link) {
+            const msg = `مرحباً ${name}،%0aيسعدنا دعوتكم للحضور. تذكرتك الإلكترونية هنا:%0a${encodeURIComponent(link)}`;
+            window.open(`https://wa.me/?text=${msg}`, '_blank');
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => alert("تم نسخ الرابط!"));
+        }
+
+        // --- تحميل QR فردي كصورة ---
+        function downloadOneQR(code, name) {
+            const tempDiv = document.getElementById('tempQR');
+            tempDiv.innerHTML = '';
+            // إنشاء QR مخفي
+            new QRCode(tempDiv, { text: code, width: 200, height: 200 });
             
-            generateBatchButton.disabled = false;
-            generateBatchButton.innerHTML = '<i class="fas fa-cogs"></i> بدء الإنشاء';
-        });
-
-        // --- Copy Function ---
-        window.copyLink = (url, btn) => {
-            navigator.clipboard.writeText(url).then(() => {
-                const original = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check"></i>';
-                setTimeout(() => btn.innerHTML = original, 1500);
-            });
-        };
-
-        // --- Reports ---
-        async function fetchDetailedReport() {
-            fetchReportButton.disabled = true;
-            reportLoader.style.display = 'block';
-            reportDetailsContainer.style.display = 'none';
-
-            try {
-                const formData = new FormData();
-                formData.append('action', 'getDetailedReport');
-                const res = await fetch(GOOGLE_SCRIPT_API_URL, { method: 'POST', body: formData });
-                const data = await res.json();
-
-                if (data.success) {
-                    // Update Stats Cards
-                    document.getElementById('totalInvitedReport').innerText = data.totalInvited;
-                    document.getElementById('totalAttendedReport').innerText = data.attendedCount;
-                    document.getElementById('totalNotAttendedReport').innerText = data.notAttendedCount;
-
-                    // Fill Attended Table
-                    const attBody = document.querySelector('#attendedGuestsTable tbody');
-                    attBody.innerHTML = '';
-                    data.attendedGuests.forEach(g => {
-                        attBody.innerHTML += `<tr>
-                            <td>${g.name} <span class="status-dot dot-green"></span></td>
-                            <td style="direction: ltr">${g.arrivalTime}</td>
-                            <td style="font-family: monospace">${g.qrCode}</td>
-                        </tr>`;
-                    });
-
-                    // Fill Not Attended Table
-                    const notAttBody = document.querySelector('#notAttendedGuestsTable tbody');
-                    notAttBody.innerHTML = '';
-                    data.notAttendedGuests.forEach(g => {
-                        notAttBody.innerHTML += `<tr>
-                            <td>${g.name} <span class="status-dot dot-red"></span></td>
-                            <td>${g.status === 'Valid' ? 'بانتظار الدخول' : g.status}</td>
-                            <td style="font-family: monospace">${g.qrCode}</td>
-                        </tr>`;
-                    });
-
-                    reportDetailsContainer.style.display = 'block';
+            setTimeout(() => {
+                const img = tempDiv.querySelector('img');
+                if(img) {
+                    const link = document.createElement('a');
+                    link.href = img.src;
+                    link.download = `Ticket-${name}.png`;
+                    link.click();
                 }
-            } catch (err) {
-                alert("خطأ في تحديث البيانات");
-            }
-
-            fetchReportButton.disabled = false;
-            reportLoader.style.display = 'none';
+            }, 300); // انتظار بسيط للتأكد من الريندر
         }
 
-        // Init
-        fetchReportButton.addEventListener('click', fetchDetailedReport);
-        printReportButton.addEventListener('click', () => window.print());
-        window.onload = fetchDetailedReport;
+        // --- طباعة الكل (Grid View) ---
+        function printAllTickets() {
+            const printArea = document.getElementById('printArea');
+            printArea.innerHTML = ''; // مسح القديم
+            
+            if(allGuestsData.length === 0) return alert("لا يوجد مدعوين للطباعة");
 
-        // Mobile Grid Fix
-        const mq = window.matchMedia("(max-width: 768px)");
-        function handleMobile(e) {
-            const grid = document.querySelector('.container > div:nth-child(2)');
-            grid.style.gridTemplateColumns = e.matches ? '1fr' : '1fr 1fr';
+            const eventName = document.getElementById('eventTitle').value || "بطاقة دعوة";
+
+            // إنشاء بطاقات لكل الضيوف
+            allGuestsData.forEach(guest => {
+                const card = document.createElement('div');
+                card.className = 'print-ticket';
+                
+                // حاوية للباركود
+                const qrContainer = document.createElement('div');
+                new QRCode(qrContainer, { text: guest.qrCode, width: 120, height: 120 });
+                
+                card.appendChild(qrContainer);
+                card.innerHTML += `<h3>${guest.name}</h3><p>${eventName}</p><p style="font-family:monospace">${guest.qrCode}</p>`;
+                
+                printArea.appendChild(card);
+            });
+
+            // انتظار تحميل الصور ثم الطباعة
+            setTimeout(() => {
+                window.print();
+            }, 1000);
         }
-        mq.addListener(handleMobile);
-        handleMobile(mq);
+
+        // بدء التشغيل
+        window.onload = loadData;
 
     </script>
 </body>
-
 </html>
