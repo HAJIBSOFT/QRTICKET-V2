@@ -5,376 +5,357 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HAJIB | مصمم الدعوات</title>
     
-    <!-- مكتبات ضرورية -->
+    <!-- مكتبات المعالجة -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;700;800&display=swap" rel="stylesheet">
+    <!-- الخطوط والأيقونات -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        :root {
-            --bg: #111827; --panel: #1f2937; --primary: #3b82f6; --success: #10b981; --text: #f3f4f6; --border: #374151;
-        }
-
-        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+        :root { --bg: #111827; --panel: #1f2937; --primary: #3b82f6; --text: #f3f4f6; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         body { margin: 0; font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* --- Header --- */
-        header {
-            background: var(--panel); border-bottom: 1px solid var(--border);
-            padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; height: 60px; z-index: 10;
-        }
-        .brand { font-size: 1.2rem; font-weight: 800; color: var(--primary); display: flex; gap: 10px; align-items: center; }
-        .status-badge { background: #065f46; color: #34d399; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; white-space: nowrap; }
-        
-        /* --- Workspace --- */
-        .workspace { flex: 1; display: flex; overflow: hidden; height: calc(100vh - 60px); }
+        /* رأس الصفحة */
+        header { background: var(--panel); padding: 10px 15px; height: 50px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #374151; }
+        .brand { font-weight: 800; color: var(--primary); font-size: 1.1rem; }
+        .badge { background: #065f46; color: #34d399; padding: 3px 10px; border-radius: 15px; font-size: 0.75rem; }
 
-        /* Preview Area (Canvas) */
-        .preview-area {
-            flex: 1; background: #000; display: flex; justify-content: center; align-items: center;
+        /* منطقة العمل */
+        .workspace { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* منطقة المعاينة (Canvas) */
+        .preview-container {
+            flex: 1; /* تأخذ المساحة المتبقية */
+            background: #000;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; position: relative;
             background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px;
-            padding: 20px; overflow: hidden; position: relative;
         }
-        canvas {
-            box-shadow: 0 0 30px rgba(0,0,0,0.5); max-width: 95%; max-height: 95%; object-fit: contain;
-        }
-
-        /* Controls Area */
-        .controls {
-            width: 350px; background: var(--panel); border-left: 1px solid var(--border);
-            display: flex; flex-direction: column; 
-            z-index: 20; box-shadow: -5px 0 20px rgba(0,0,0,0.3);
+        canvas { 
+            max-width: 90%; max-height: 90%; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); 
+            object-fit: contain;
         }
 
-        /* Tabs inside Controls */
-        .tabs { display: flex; border-bottom: 1px solid var(--border); }
+        /* لوحة التحكم */
+        .controls-panel {
+            height: 45vh; /* ارتفاع ثابت للوحة التحكم */
+            background: var(--panel);
+            border-top: 1px solid #374151;
+            display: flex; flex-direction: column;
+            z-index: 100;
+        }
+
+        /* التبويبات */
+        .tabs { display: flex; background: #111827; }
         .tab-btn {
-            flex: 1; padding: 15px; background: none; border: none; color: #9ca3af; 
-            cursor: pointer; font-family: inherit; font-weight: bold; border-bottom: 3px solid transparent;
+            flex: 1; padding: 12px; background: none; border: none; color: #9ca3af; 
+            font-family: inherit; font-weight: bold; font-size: 0.9rem; border-bottom: 3px solid transparent;
         }
-        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(59, 130, 246, 0.05); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: #1f2937; }
 
-        /* Scrollable Settings */
-        .settings-content { flex: 1; overflow-y: auto; padding: 20px; }
-        .tab-content { display: none; }
+        /* محتوى التبويبات */
+        .tab-content { flex: 1; overflow-y: auto; padding: 15px; display: none; }
         .tab-content.active { display: block; }
 
-        /* Inputs */
-        .control-group { margin-bottom: 20px; }
-        label { display: block; font-size: 0.9rem; color: #d1d5db; margin-bottom: 8px; display: flex; justify-content: space-between; }
-        .val-display { color: var(--primary); font-size: 0.8rem; }
+        /* عناصر التحكم */
+        .control-row { margin-bottom: 18px; }
+        .control-label { display: flex; justify-content: space-between; font-size: 0.85rem; color: #d1d5db; margin-bottom: 5px; }
+        .val-badge { color: var(--primary); font-weight: bold; }
         
-        input[type="range"] { 
-            width: 100%; cursor: pointer; height: 6px; border-radius: 5px; background: #4b5563; outline: none; appearance: none;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--primary); cursor: pointer; border: 2px solid #fff;
-        }
+        input[type="range"] { width: 100%; height: 5px; background: #4b5563; border-radius: 5px; appearance: none; }
+        input[type="range"]::-webkit-slider-thumb { appearance: none; width: 20px; height: 20px; background: var(--primary); border-radius: 50%; border: 2px solid white; cursor: pointer; }
 
-        /* Toggle Switch */
-        .toggle-container { display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 15px; }
-        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--primary); }
-        input:checked + .slider:before { transform: translateX(24px); }
+        /* شريط الإجراءات */
+        .actions { padding: 10px; background: #111827; display: flex; gap: 10px; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-family: inherit; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; color: white; }
+        .btn-zip { background: var(--primary); }
+        .btn-test { background: #059669; flex: 0.4; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        /* Action Buttons */
-        .actions-bar { padding: 15px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.1); }
-        .btn {
-            width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-family: inherit; font-size: 1rem;
-            display: flex; justify-content: center; align-items: center; gap: 10px; transition: 0.2s;
+        /* شاشة التحميل */
+        #progressOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 999;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
         }
-        .btn-primary { background: var(--primary); color: white; margin-bottom: 10px; }
-        .btn-success { background: var(--success); color: white; }
-        .btn:disabled { background: #4b5563; opacity: 0.7; }
-
-        /* --- Mobile Responsive Design --- */
-        @media (max-width: 768px) {
-            .workspace { flex-direction: column; }
-            
-            /* Preview takes top part */
-            .preview-area { height: 35vh; flex: none; border-bottom: 1px solid var(--border); padding: 10px; }
-            
-            /* Controls take bottom part */
-            .controls { width: 100%; height: 65vh; border-left: none; }
-            
-            /* Better touch targets */
-            .tab-btn { padding: 12px; font-size: 0.9rem; }
-            input[type="range"]::-webkit-slider-thumb { width: 24px; height: 24px; }
-        }
+        .progress-bar { width: 80%; height: 10px; background: #333; border-radius: 5px; margin-top: 15px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
+        
+        /* Checkbox */
+        .chk-container { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 15px; }
+        input[type="checkbox"] { width: 20px; height: 20px; }
     </style>
 </head>
 <body>
 
+    <!-- Loading Overlay -->
+    <div id="progressOverlay">
+        <i class="fas fa-cog fa-spin" style="font-size: 3rem; color: var(--primary);"></i>
+        <h3 id="progressText" style="margin-top: 20px;">جاري المعالجة...</h3>
+        <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+        <button onclick="window.location.reload()" style="margin-top:20px; padding:10px 20px; background:red; border:none; color:white; border-radius:5px;">إلغاء</button>
+    </div>
+
     <header>
-        <div class="brand"><i class="fas fa-paint-brush"></i> مصمم الدعوات</div>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <span id="loader" style="display:none; color:var(--primary);"><i class="fas fa-circle-notch fa-spin"></i></span>
-            <span id="guestCountBadge" class="status-badge">جاري التحميل...</span>
-        </div>
+        <div class="brand">HAJIB DESIGNER</div>
+        <div class="badge" id="guestCount">جاري الاتصال...</div>
     </header>
 
     <div class="workspace">
-        <!-- منطقة المعاينة (أعلى في الموبايل) -->
-        <div class="preview-area">
+        <div class="preview-container">
             <canvas id="canvas"></canvas>
         </div>
 
-        <!-- منطقة التحكم (أسفل في الموبايل) -->
-        <aside class="controls">
-            <!-- تبويبات لتنظيم المساحة -->
+        <div class="controls-panel">
             <div class="tabs">
-                <button class="tab-btn active" onclick="openTab('tab-main')"><i class="fas fa-sliders-h"></i> أساسي</button>
-                <button class="tab-btn" onclick="openTab('tab-text')"><i class="fas fa-font"></i> النصوص</button>
-                <button class="tab-btn" onclick="openTab('tab-qr')"><i class="fas fa-qrcode"></i> الباركود</button>
+                <button class="tab-btn active" onclick="setTab('main')">الصورة</button>
+                <button class="tab-btn" onclick="setTab('text')">الاسم</button>
+                <button class="tab-btn" onclick="setTab('qr')">الباركود</button>
             </div>
 
-            <div class="settings-content">
+            <!-- تبويب الصورة -->
+            <div id="tab-main" class="tab-content active">
+                <div class="control-row">
+                    <div class="control-label">رفع التصميم</div>
+                    <input type="file" id="bgInput" accept="image/*" style="width:100%; padding:10px; background:#374151; border-radius:5px; color:white;">
+                </div>
+                <p style="font-size:0.8rem; color:#9ca3af; text-align:center;">
+                    اسحب الصورة للأسفل لتغيير موقع العناصر
+                </p>
+            </div>
+
+            <!-- تبويب الاسم -->
+            <div id="tab-text" class="tab-content">
+                <div class="chk-container">
+                    <input type="checkbox" id="showName" checked>
+                    <label for="showName" style="margin:0; cursor:pointer;">إظهار اسم الضيف</label>
+                </div>
                 
-                <!-- إعدادات الخلفية -->
-                <div id="tab-main" class="tab-content active">
-                    <div class="control-group">
-                        <label>اختر صورة التصميم</label>
-                        <input type="file" id="bgInput" accept="image/*" style="width:100%; padding:10px; background:rgba(0,0,0,0.2); border-radius:8px;">
-                    </div>
-                    <p style="font-size:0.8rem; color:#6b7280; text-align:center;">
-                        <i class="fas fa-info-circle"></i> يمكنك تحريك العناصر في التبويبات الأخرى
-                    </p>
+                <div class="control-row">
+                    <div class="control-label"><span>حجم الخط</span> <span id="val-textSize" class="val-badge">40</span></div>
+                    <input type="range" id="textSize" min="10" max="150" value="40">
                 </div>
-
-                <!-- إعدادات النصوص -->
-                <div id="tab-text" class="tab-content">
-                    <div class="toggle-container">
-                        <span>إظهار اسم الضيف</span>
-                        <label class="switch">
-                            <input type="checkbox" id="showNameCheck" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="control-group">
-                        <label>حجم الخط <span id="textSizeVal" class="val-display">40</span></label>
-                        <input type="range" id="textSize" min="10" max="200" value="40">
-                    </div>
-                    <div class="control-group">
-                        <label>لون النص</label>
-                        <input type="color" id="textColor" value="#ffffff" style="width:100%; height:40px; border:none; border-radius:5px;">
-                    </div>
-                    <div class="control-group">
-                        <label>موضع أفقي (X)</label>
-                        <input type="range" id="textX" min="0" max="2000" value="50">
-                    </div>
-                    <div class="control-group">
-                        <label>موضع عمودي (Y)</label>
-                        <input type="range" id="textY" min="0" max="2000" value="300">
-                    </div>
+                <div class="control-row">
+                    <div class="control-label"><span>أفقي (X)</span> <span id="val-textX" class="val-badge">50</span></div>
+                    <input type="range" id="textX" min="0" max="2000" value="50">
                 </div>
-
-                <!-- إعدادات الباركود -->
-                <div id="tab-qr" class="tab-content">
-                    <div class="control-group">
-                        <label>حجم الباركود <span id="qrSizeVal" class="val-display">150</span></label>
-                        <input type="range" id="qrSize" min="50" max="600" value="150">
-                    </div>
-                    <div class="control-group">
-                        <label>موضع أفقي (X)</label>
-                        <input type="range" id="qrX" min="0" max="2000" value="50">
-                    </div>
-                    <div class="control-group">
-                        <label>موضع عمودي (Y)</label>
-                        <input type="range" id="qrY" min="0" max="2000" value="50">
-                    </div>
+                <div class="control-row">
+                    <div class="control-label"><span>عمودي (Y)</span> <span id="val-textY" class="val-badge">300</span></div>
+                    <input type="range" id="textY" min="0" max="2000" value="300">
+                </div>
+                <div class="control-row">
+                    <div class="control-label">لون النص</div>
+                    <input type="color" id="textColor" value="#ffffff" style="width:100%; height:40px; border:none; border-radius:5px;">
                 </div>
             </div>
 
-            <!-- أزرار الإجراءات -->
-            <div class="actions-bar">
-                <button id="zipBtn" class="btn btn-primary" onclick="generateZIP()">
+            <!-- تبويب الباركود -->
+            <div id="tab-qr" class="tab-content">
+                <div class="control-row">
+                    <div class="control-label"><span>حجم الباركود</span> <span id="val-qrSize" class="val-badge">150</span></div>
+                    <input type="range" id="qrSize" min="50" max="500" value="150">
+                </div>
+                <div class="control-row">
+                    <div class="control-label"><span>أفقي (X)</span> <span id="val-qrX" class="val-badge">50</span></div>
+                    <input type="range" id="qrX" min="0" max="2000" value="50">
+                </div>
+                <div class="control-row">
+                    <div class="control-label"><span>عمودي (Y)</span> <span id="val-qrY" class="val-badge">50</span></div>
+                    <input type="range" id="qrY" min="0" max="2000" value="50">
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-zip" onclick="startBatchProcess()">
                     <i class="fas fa-file-archive"></i> تحميل الكل (ZIP)
                 </button>
-                <button class="btn btn-success" onclick="downloadPreview()">
-                    <i class="fas fa-image"></i> تحميل المعاينة الحالية
+                <button class="btn btn-test" onclick="downloadSingle()">
+                    <i class="fas fa-image"></i> تجربة
                 </button>
             </div>
-        </aside>
+        </div>
     </div>
 
-    <!-- حاوية مخفية -->
-    <div id="tempQRContainer" style="display:none;"></div>
+    <!-- Div مخفي لتوليد QR -->
+    <div id="hiddenQR" style="display:none;"></div>
 
     <script>
-        // --- إعدادات ---
+        // --- إعدادات النظام ---
         const API_URL = 'https://script.google.com/macros/s/AKfycbzcJyxjZ4DcOKkboUYvDOrkWs5PVsKScetEzEvSXwzIL3sFGb0JHHVpTzZRksiaBJsW/exec';
-        let allGuests = [];
+        let guests = [];
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let bgImage = new Image();
+        let bgImg = new Image();
         
-        // الحالة
-        const settings = {
+        // الحالة الافتراضية
+        const state = {
             qrSize: 150, qrX: 50, qrY: 50,
             showName: true, textSize: 40, textX: 50, textY: 300, textColor: '#ffffff'
         };
 
         // صورة افتراضية
-        bgImage.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+gAAALQCAIAAACw5t5xAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABTSURBVHhe7cExAQAAAMKg9U9tDQ8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4McIsHgAAa1w1XEAAAAASUVORK5CYII=";
-        bgImage.onload = () => { draw(); };
+        bgImg.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+gAAALQCAIAAACw5t5xAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABTSURBVHhe7cExAQAAAMKg9U9tDQ8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4McIsHgAAa1w1XEAAAAASUVORK5CYII=";
+        bgImg.onload = draw;
 
-        // --- Tabs Logic ---
-        function openTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        // --- جلب البيانات ---
+        fetch(API_URL, { method: 'POST', body: new URLSearchParams({action: 'getDetailedReport'}) })
+            .then(r => r.json())
+            .then(d => {
+                if(d.success) {
+                    guests = [...d.attendedGuests, ...d.notAttendedGuests];
+                    document.getElementById('guestCount').innerText = `${guests.length} مدعو`;
+                }
+            })
+            .catch(() => document.getElementById('guestCount').innerText = "خطأ");
+
+        // --- التبويبات ---
+        window.setTab = (id) => {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
-        }
+            document.getElementById('tab-' + id).style.display = 'block';
+            event.target.classList.add('active');
+        };
 
-        // --- Fetch Data ---
-        async function init() {
-            document.getElementById('loader').style.display = 'inline-block';
-            try {
-                const formData = new FormData(); formData.append('action', 'getDetailedReport');
-                const res = await fetch(API_URL, { method: 'POST', body: formData });
-                const data = await res.json();
-                if(data.success) {
-                    allGuests = [...data.attendedGuests, ...data.notAttendedGuests];
-                    document.getElementById('guestCountBadge').innerText = `${allGuests.length} مدعوين`;
-                }
-            } catch(e) { 
-                document.getElementById('guestCountBadge').innerText = "خطأ اتصال";
-                document.getElementById('guestCountBadge').style.background = "#ef4444";
-            }
-            document.getElementById('loader').style.display = 'none';
-        }
-        init();
+        // --- ربط الأحداث (للمعاينة اللحظية) ---
+        // استخدام 'input' بدلاً من 'change' للتحديث الفوري
+        const bind = (id) => {
+            const el = document.getElementById(id);
+            el.addEventListener('input', (e) => {
+                let val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                if(e.target.type === 'range') val = parseInt(val);
+                
+                state[id] = val;
+                
+                // تحديث الرقم المعروض بجانب الشريط
+                const badge = document.getElementById('val-' + id);
+                if(badge) badge.innerText = val;
+                
+                draw(); // إعادة الرسم فوراً
+            });
+        };
 
-        // --- Controls Listeners ---
-        document.getElementById('bgInput').addEventListener('change', function(e) {
-            if (e.target.files && e.target.files[0]) {
+        ['qrSize', 'qrX', 'qrY', 'textSize', 'textX', 'textY', 'textColor', 'showName'].forEach(bind);
+
+        // رفع الصورة
+        document.getElementById('bgInput').addEventListener('change', (e) => {
+            if(e.target.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(evt) {
-                    bgImage = new Image();
-                    bgImage.onload = function() {
-                        // تحديث حدود السلايدرز
-                        const maxD = Math.max(bgImage.width, bgImage.height);
-                        ['qrX','qrY','textX','textY'].forEach(id => document.getElementById(id).max = maxD);
+                reader.onload = (evt) => {
+                    bgImg = new Image();
+                    bgImg.onload = () => {
+                        // تحديث الحد الأقصى للأشرطة بناءً على حجم الصورة
+                        const max = Math.max(bgImg.width, bgImg.height);
+                        ['qrX','qrY','textX','textY'].forEach(id => document.getElementById(id).max = max);
                         draw();
-                    }
-                    bgImage.src = evt.target.result;
-                }
+                    };
+                    bgImg.src = evt.target.result;
+                };
                 reader.readAsDataURL(e.target.files[0]);
             }
         });
 
-        // ربط جميع السلايدرز
-        ['qrSize', 'qrX', 'qrY', 'textSize', 'textX', 'textY'].forEach(id => {
-            document.getElementById(id).addEventListener('input', (e) => {
-                settings[id] = parseInt(e.target.value);
-                document.getElementById(id+'Val').innerText = settings[id];
-                draw();
-            });
-        });
-
-        document.getElementById('textColor').addEventListener('input', (e) => { settings.textColor = e.target.value; draw(); });
-        document.getElementById('showNameCheck').addEventListener('change', (e) => { settings.showName = e.target.checked; draw(); });
-
-        // --- Draw Function (Preview) ---
+        // --- دالة الرسم (المعاينة) ---
         function draw() {
-            canvas.width = bgImage.width || 800;
-            canvas.height = bgImage.height || 600;
+            // ضبط الكانفاس بحجم الصورة
+            canvas.width = bgImg.width || 800;
+            canvas.height = bgImg.height || 600;
 
-            // 1. Background
-            ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
-            // 2. Fake QR for Preview
+            // مربع معاينة الباركود (وهمي ليكون سريعاً)
             ctx.fillStyle = "#000";
-            ctx.fillRect(settings.qrX, settings.qrY, settings.qrSize, settings.qrSize);
+            ctx.fillRect(state.qrX, state.qrY, state.qrSize, state.qrSize);
             ctx.fillStyle = "#fff";
-            ctx.fillRect(settings.qrX + 10, settings.qrY + 10, settings.qrSize - 20, settings.qrSize - 20);
-
-            // 3. Text
-            if(settings.showName) {
-                ctx.font = `bold ${settings.textSize}px 'Tajawal', sans-serif`;
-                ctx.fillStyle = settings.textColor;
+            ctx.fillRect(state.qrX + 5, state.qrY + 5, state.qrSize - 10, state.qrSize - 10);
+            
+            // الاسم
+            if(state.showName) {
+                ctx.font = `bold ${state.textSize}px 'Tajawal'`;
+                ctx.fillStyle = state.textColor;
                 ctx.textAlign = 'right';
-                ctx.textBaseline = 'middle';
-                ctx.fillText("اسم الضيف هنا", settings.textX, settings.textY);
+                ctx.fillText("اسم الضيف هنا", state.textX, state.textY);
             }
         }
 
-        function downloadPreview() {
-            canvas.toBlob(blob => saveAs(blob, "تجربة_تصميم.png"));
-        }
+        // تحميل صورة واحدة للتجربة
+        window.downloadSingle = () => canvas.toBlob(b => saveAs(b, "تجربة.png"));
 
-        // --- Optimized ZIP Generation (Fixing the Freeze) ---
-        async function generateZIP() {
-            if(allGuests.length === 0) return alert("انتظر تحميل البيانات...");
+
+        // --- معالجة الدفعات (حل مشكلة التوقف عند 4) ---
+        async function startBatchProcess() {
+            if(guests.length === 0) return alert("لا يوجد بيانات");
+
+            const overlay = document.getElementById('progressOverlay');
+            const pText = document.getElementById('progressText');
+            const pFill = document.getElementById('progressFill');
             
-            const btn = document.getElementById('zipBtn');
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-
+            overlay.style.display = 'flex';
             const zip = new JSZip();
             const folder = zip.folder("Cards");
-            const tempDiv = document.getElementById('tempQRContainer');
+            const tempDiv = document.getElementById('hiddenQR');
 
-            // دالة لمعالجة بطاقة واحدة مع "تأخير" بسيط للسماح للمتصفح بالتنفس
-            const processCard = async (guest, index) => {
-                return new Promise(async (resolve) => {
-                    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${index + 1}/${allGuests.length}`;
-                    
-                    // 1. توليد QR في DOM
-                    tempDiv.innerHTML = '';
-                    new QRCode(tempDiv, { text: guest.qrCode, width: settings.qrSize, height: settings.qrSize });
+            // دالة المعالجة التتابعية
+            const processGuest = async (index) => {
+                if (index >= guests.length) {
+                    // الانتهاء
+                    pText.innerText = "جاري ضغط الملف (ZIP)...";
+                    const content = await zip.generateAsync({type:"blob"});
+                    saveAs(content, "الدعوات.zip");
+                    overlay.style.display = 'none';
+                    return;
+                }
 
-                    // انتظار إجباري لتجنب تجميد المتصفح
-                    await new Promise(r => setTimeout(r, 100)); 
+                // تحديث الواجهة
+                const guest = guests[index];
+                const percent = Math.round(((index + 1) / guests.length) * 100);
+                pText.innerText = `معالجة ${index + 1} من ${guests.length}`;
+                pFill.style.width = `${percent}%`;
 
-                    const qrImg = tempDiv.querySelector('img');
-                    if(qrImg) {
-                        const tCanvas = document.createElement('canvas');
-                        tCanvas.width = canvas.width;
-                        tCanvas.height = canvas.height;
-                        const tCtx = tCanvas.getContext('2d');
+                // 1. إنشاء QR
+                tempDiv.innerHTML = '';
+                new QRCode(tempDiv, { text: guest.qrCode, width: state.qrSize, height: state.qrSize });
 
-                        // رسم الطبقات
-                        tCtx.drawImage(bgImage, 0, 0);
-                        tCtx.drawImage(qrImg, settings.qrX, settings.qrY, settings.qrSize, settings.qrSize);
+                // **الحل السحري**: تأخير زمني 500ms لإعطاء المتصفح وقتاً للتنفس
+                await new Promise(r => setTimeout(r, 500));
 
-                        if(settings.showName) {
-                            tCtx.font = `bold ${settings.textSize}px 'Tajawal', sans-serif`;
-                            tCtx.fillStyle = settings.textColor;
-                            tCtx.textAlign = 'right';
-                            tCtx.textBaseline = 'middle';
-                            tCtx.fillText(guest.name, settings.textX, settings.textY);
-                        }
+                const qrImg = tempDiv.querySelector('img');
+                if(qrImg) {
+                    // 2. الرسم على كانفاس مخفي
+                    const tCanvas = document.createElement('canvas');
+                    tCanvas.width = canvas.width;
+                    tCanvas.height = canvas.height;
+                    const tCtx = tCanvas.getContext('2d');
 
-                        // إضافة للـ ZIP
-                        const dataUrl = tCanvas.toDataURL("image/jpeg", 0.8);
-                        const base64 = dataUrl.split(',')[1];
-                        folder.file(`${guest.name.replace(/[^a-z0-9\u0600-\u06FF]/gi, "_")}.jpg`, base64, {base64: true});
+                    tCtx.drawImage(bgImg, 0, 0);
+                    tCtx.drawImage(qrImg, state.qrX, state.qrY, state.qrSize, state.qrSize);
+
+                    if(state.showName) {
+                        tCtx.font = `bold ${state.textSize}px 'Tajawal'`;
+                        tCtx.fillStyle = state.textColor;
+                        tCtx.textAlign = 'right';
+                        tCtx.fillText(guest.name, state.textX, state.textY);
                     }
-                    resolve();
-                });
+
+                    // 3. الحفظ (JPG لتقليل استهلاك الذاكرة)
+                    const data = tCanvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+                    const safeName = guest.name.replace(/[^a-z0-9\u0600-\u06FF]/gi, "_");
+                    folder.file(`${safeName}.jpg`, data, {base64: true});
+                    
+                    // تنظيف الذاكرة يدوياً
+                    tCanvas.width = 1; tCanvas.height = 1; 
+                }
+
+                // الانتقال للتالي
+                processGuest(index + 1);
             };
 
-            // حلقة المعالجة المتسلسلة (تمنع التجميد)
-            for (let i = 0; i < allGuests.length; i++) {
-                await processCard(allGuests[i], i);
-                // تأخير إضافي كل 5 صور لتفريغ الذاكرة
-                if(i % 5 === 0) await new Promise(r => setTimeout(r, 200));
-            }
-
-            btn.innerHTML = 'جاري الضغط...';
-            const content = await zip.generateAsync({type:"blob"});
-            saveAs(content, "الدعوات.zip");
-            
-            btn.innerHTML = originalText;
-            btn.disabled = false;
+            // البدء من رقم 0
+            processGuest(0);
         }
 
     </script>
