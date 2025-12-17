@@ -3,96 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HAJIB | مصمم الدعوات</title>
+    <title>HAJIB | التحميل اليدوي</title>
     
-    <!-- مكتبات المعالجة -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     
-    <!-- الخطوط والأيقونات -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        :root { --bg: #111827; --panel: #1f2937; --primary: #3b82f6; --text: #f3f4f6; }
+        :root { --bg: #111827; --panel: #1f2937; --primary: #3b82f6; --text: #f3f4f6; --success: #10b981; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         body { margin: 0; font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
+        /* Header */
         header { background: var(--panel); padding: 10px 15px; height: 50px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #374151; }
-        .brand { font-weight: 800; color: var(--primary); font-size: 1.1rem; }
-        .badge { background: #065f46; color: #34d399; padding: 3px 10px; border-radius: 15px; font-size: 0.75rem; }
+        .brand { font-weight: 800; color: var(--primary); font-size: 1rem; }
+        
+        /* القائمة المنسدلة للضيوف */
+        .guest-select-container { flex: 1; margin: 0 10px; max-width: 200px; }
+        select { width: 100%; background: #374151; color: white; border: 1px solid #4b5563; padding: 5px; border-radius: 5px; font-family: inherit; }
 
-        .workspace { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        /* منطقة العمل */
+        .workspace { flex: 1; display: flex; flex-direction: column; position: relative; }
 
+        /* المعاينة */
         .preview-container {
             flex: 1; background: #000; display: flex; justify-content: center; align-items: center;
-            overflow: hidden; position: relative;
+            overflow: hidden; 
             background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px;
         }
-        canvas { max-width: 90%; max-height: 90%; box-shadow: 0 0 20px rgba(0,0,0,0.5); object-fit: contain; }
-
-        .controls-panel {
-            height: 50vh; background: var(--panel); border-top: 1px solid #374151;
-            display: flex; flex-direction: column; z-index: 100;
+        /* الكانفاس يظهر مصغراً ليناسب الشاشة لكنه يحتفظ بدقته داخلياً */
+        canvas { 
+            max-width: 95%; max-height: 95%; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); 
+            object-fit: contain;
         }
 
-        .tabs { display: flex; background: #111827; }
-        .tab-btn {
-            flex: 1; padding: 12px; background: none; border: none; color: #9ca3af; 
-            font-family: inherit; font-weight: bold; font-size: 0.9rem; border-bottom: 3px solid transparent;
+        /* أدوات التحكم السفلية */
+        .bottom-bar {
+            background: var(--panel); border-top: 1px solid #374151;
+            padding: 10px; display: flex; flex-direction: column; gap: 10px;
+            z-index: 100;
         }
-        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: #1f2937; }
 
-        .tab-content { flex: 1; overflow-y: auto; padding: 15px; display: none; }
-        .tab-content.active { display: block; }
+        /* أزرار التنقل والتحميل */
+        .nav-controls { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+        .btn-nav { background: #374151; color: white; border: 1px solid #4b5563; width: 50px; height: 50px; border-radius: 10px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;}
+        .btn-download { flex: 1; background: var(--success); color: white; border: none; height: 50px; border-radius: 10px; font-weight: bold; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); }
+        .btn-download:active { transform: scale(0.98); }
 
-        .control-row { margin-bottom: 18px; }
-        .control-label { display: flex; justify-content: space-between; font-size: 0.85rem; color: #d1d5db; margin-bottom: 5px; }
-        .val-badge { color: var(--primary); font-weight: bold; }
+        /* زر الإعدادات */
+        .settings-toggle { text-align: center; color: #9ca3af; font-size: 0.8rem; padding: 5px; cursor: pointer; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 5px;}
         
-        input[type="range"] { width: 100%; height: 5px; background: #4b5563; border-radius: 5px; appearance: none; }
-        input[type="range"]::-webkit-slider-thumb { appearance: none; width: 20px; height: 20px; background: var(--primary); border-radius: 50%; border: 2px solid white; cursor: pointer; }
-
-        .actions { padding: 10px; background: #111827; display: flex; gap: 10px; flex-direction: column; }
-        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; font-family: inherit; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; color: white; }
-        .btn-zip { background: var(--primary); }
-        .btn-zip:disabled { background: #4b5563; }
-        
-        /* Loading Overlay */
-        #progressOverlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 999;
-            display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        /* لوحة الإعدادات (مخفية افتراضياً) */
+        .settings-panel {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 60%; 
+            background: rgba(31, 41, 55, 0.98); backdrop-filter: blur(10px);
+            border-top: 1px solid var(--primary);
+            transition: transform 0.3s ease;
+            transform: translateY(100%); /* مخفية للأسفل */
+            z-index: 200; display: flex; flex-direction: column;
         }
-        .progress-bar { width: 80%; height: 10px; background: #333; border-radius: 5px; margin-top: 15px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
-        .warning-msg { color: orange; font-size: 0.8rem; margin-top: 20px; max-width: 80%; }
+        .settings-panel.open { transform: translateY(0); }
         
-        .chk-container { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 15px; }
-        input[type="checkbox"] { width: 20px; height: 20px; }
+        .settings-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .settings-content { flex: 1; overflow-y: auto; padding: 20px; }
+        
+        .control-row { margin-bottom: 20px; }
+        label { display: flex; justify-content: space-between; color: #d1d5db; margin-bottom: 8px; font-size: 0.9rem; }
+        input[type="range"] { width: 100%; height: 6px; background: #4b5563; border-radius: 5px; appearance: none; }
+        input[type="range"]::-webkit-slider-thumb { appearance: none; width: 22px; height: 22px; background: var(--primary); border-radius: 50%; border: 2px solid white; }
     </style>
 </head>
 <body>
 
-    <!-- Loading Overlay -->
-    <div id="progressOverlay">
-        <div id="statusIcon"><i class="fas fa-cog fa-spin" style="font-size: 3rem; color: var(--primary);"></i></div>
-        <h3 id="progressText" style="margin-top: 20px; color:white;">جاري التجهيز...</h3>
-        <p id="subProgressText" style="color:#9ca3af; font-size:0.9rem;">يرجى الانتظار</p>
-        <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
-        
-        <p class="warning-msg">
-            <i class="fas fa-exclamation-triangle"></i> ملاحظة: سيتم تحميل الملفات على دفعات. <br>
-            يرجى السماح للمتصفح بتحميل عدة ملفات إذا طلب ذلك.
-        </p>
-        
-        <button onclick="window.location.reload()" style="margin-top:20px; padding:8px 20px; background:transparent; border:1px solid #ef4444; color:#ef4444; border-radius:5px;">إيقاف وإعادة تحميل</button>
-    </div>
-
     <header>
-        <div class="brand">HAJIB DESIGNER</div>
-        <div class="badge" id="guestCount">...</div>
+        <div class="brand">HAJIB</div>
+        <div class="guest-select-container">
+            <select id="guestSelect" onchange="jumpToGuest()">
+                <option value="-1">جاري التحميل...</option>
+            </select>
+        </div>
+        <div style="font-size:0.8rem; color:#9ca3af;" id="counterDisplay">0/0</div>
     </header>
 
     <div class="workspace">
@@ -100,114 +93,198 @@
             <canvas id="canvas"></canvas>
         </div>
 
-        <div class="controls-panel">
-            <div class="tabs">
-                <button class="tab-btn active" onclick="setTab('main')">الصورة</button>
-                <button class="tab-btn" onclick="setTab('text')">الاسم</button>
-                <button class="tab-btn" onclick="setTab('qr')">الباركود</button>
-            </div>
-
-            <div id="tab-main" class="tab-content active">
-                <div class="control-row">
-                    <div class="control-label">رفع التصميم</div>
-                    <input type="file" id="bgInput" accept="image/*" style="width:100%; padding:10px; background:#374151; border-radius:5px; color:white;">
-                </div>
+        <div class="bottom-bar">
+            <!-- أزرار التحكم الرئيسية -->
+            <div class="nav-controls">
+                <button class="btn-nav" onclick="prevGuest()"><i class="fas fa-chevron-right"></i></button>
                 
-                <div class="control-row" style="margin-top:20px; border-top:1px solid #374151; padding-top:10px;">
-                    <div class="control-label">
-                        <span><i class="fas fa-boxes"></i> عدد الصور في الملف الواحد (Batch)</span>
-                        <span id="val-batchSize" class="val-badge">15</span>
-                    </div>
-                    <input type="range" id="batchSize" min="5" max="50" value="15" step="5">
-                    <p style="font-size:0.75rem; color:orange; margin-top:5px;">
-                        * قلل هذا الرقم إذا كان هاتفك يتجمد (مثلاً اجعله 10).
-                    </p>
-                </div>
+                <button class="btn-download" onclick="downloadCurrentPNG()">
+                    <i class="fas fa-download"></i> تحميل PNG
+                </button>
+                
+                <button class="btn-nav" onclick="nextGuest()"><i class="fas fa-chevron-left"></i></button>
             </div>
+            
+            <div class="settings-toggle" onclick="toggleSettings()">
+                <i class="fas fa-sliders-h"></i> تعديل التصميم والمواقع
+            </div>
+        </div>
 
-            <div id="tab-text" class="tab-content">
-                <div class="chk-container">
-                    <input type="checkbox" id="showName" checked>
-                    <label for="showName" style="margin:0; cursor:pointer;">إظهار اسم الضيف</label>
+        <!-- لوحة الإعدادات المنبثقة -->
+        <div class="settings-panel" id="settingsPanel">
+            <div class="settings-header">
+                <span style="font-weight:bold; color:var(--primary);">إعدادات التصميم</span>
+                <button onclick="toggleSettings()" style="background:none; border:none; color:white; font-size:1.2rem;"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="settings-content">
+                <!-- رفع الصورة -->
+                <div class="control-row">
+                    <label>صورة الخلفية</label>
+                    <input type="file" id="bgInput" accept="image/*" style="width:100%; padding:10px; background:#111827; border-radius:5px; color:white;">
+                </div>
+
+                <!-- إعدادات الاسم -->
+                <div class="control-row" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
+                    <label>
+                        <span>إظهار الاسم</span>
+                        <input type="checkbox" id="showName" checked style="width:20px; height:20px;">
+                    </label>
                 </div>
                 <div class="control-row">
-                    <div class="control-label"><span>حجم الخط</span> <span id="val-textSize" class="val-badge">40</span></div>
-                    <input type="range" id="textSize" min="10" max="150" value="40">
+                    <label>حجم الخط <span><b id="val-textSize">40</b>px</span></label>
+                    <input type="range" id="textSize" min="10" max="200" value="40">
                 </div>
                 <div class="control-row">
-                    <div class="control-label"><span>أفقي (X)</span> <span id="val-textX" class="val-badge">50</span></div>
+                    <label>موضع الاسم (X)</label>
                     <input type="range" id="textX" min="0" max="2000" value="50">
                 </div>
                 <div class="control-row">
-                    <div class="control-label"><span>عمودي (Y)</span> <span id="val-textY" class="val-badge">300</span></div>
+                    <label>موضع الاسم (Y)</label>
                     <input type="range" id="textY" min="0" max="2000" value="300">
                 </div>
                 <div class="control-row">
-                    <div class="control-label">لون النص</div>
-                    <input type="color" id="textColor" value="#ffffff" style="width:100%; height:40px; border:none; border-radius:5px;">
+                    <label>لون النص</label>
+                    <input type="color" id="textColor" value="#ffffff" style="width:100%; height:40px; border:none;">
                 </div>
-            </div>
 
-            <div id="tab-qr" class="tab-content">
-                <div class="control-row">
-                    <div class="control-label"><span>حجم الباركود</span> <span id="val-qrSize" class="val-badge">150</span></div>
-                    <input type="range" id="qrSize" min="50" max="500" value="150">
+                <!-- إعدادات الباركود -->
+                <div class="control-row" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:15px; margin-top:15px;">
+                    <label>حجم الباركود <span><b id="val-qrSize">150</b>px</span></label>
+                    <input type="range" id="qrSize" min="50" max="600" value="150">
                 </div>
                 <div class="control-row">
-                    <div class="control-label"><span>أفقي (X)</span> <span id="val-qrX" class="val-badge">50</span></div>
+                    <label>موضع الباركود (X)</label>
                     <input type="range" id="qrX" min="0" max="2000" value="50">
                 </div>
                 <div class="control-row">
-                    <div class="control-label"><span>عمودي (Y)</span> <span id="val-qrY" class="val-badge">50</span></div>
+                    <label>موضع الباركود (Y)</label>
                     <input type="range" id="qrY" min="0" max="2000" value="50">
                 </div>
-            </div>
-
-            <div class="actions">
-                <button class="btn btn-zip" onclick="startSplitProcessing()">
-                    <i class="fas fa-file-archive"></i> بدء المعالجة والتحميل
-                </button>
             </div>
         </div>
     </div>
 
+    <!-- عنصر مخفي لتوليد QR -->
     <div id="hiddenQR" style="display:none;"></div>
 
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbzcJyxjZ4DcOKkboUYvDOrkWs5PVsKScetEzEvSXwzIL3sFGb0JHHVpTzZRksiaBJsW/exec';
+        
+        // المتغيرات العامة
         let guests = [];
+        let currentIndex = 0;
+        let bgImg = new Image();
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let bgImg = new Image();
-        
+
+        // إعدادات التصميم
         const state = {
             qrSize: 150, qrX: 50, qrY: 50,
-            showName: true, textSize: 40, textX: 50, textY: 300, textColor: '#ffffff',
-            batchSize: 15 // الافتراضي
+            showName: true, textSize: 40, textX: 50, textY: 300, textColor: '#ffffff'
         };
 
+        // صورة افتراضية
         bgImg.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+gAAALQCAIAAACw5t5xAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABTSURBVHhe7cExAQAAAMKg9U9tDQ8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4McIsHgAAa1w1XEAAAAASUVORK5CYII=";
-        bgImg.onload = draw;
+        bgImg.onload = renderCurrentGuest;
 
-        // Fetch Data
-        fetch(API_URL, { method: 'POST', body: new URLSearchParams({action: 'getDetailedReport'}) })
-            .then(r => r.json())
-            .then(d => {
-                if(d.success) {
-                    guests = [...d.attendedGuests, ...d.notAttendedGuests];
-                    document.getElementById('guestCount').innerText = `${guests.length} مدعو`;
+        // --- 1. جلب البيانات ---
+        async function fetchData() {
+            try {
+                const formData = new FormData(); formData.append('action', 'getDetailedReport');
+                const res = await fetch(API_URL, { method: 'POST', body: formData });
+                const data = await res.json();
+                
+                if(data.success) {
+                    guests = [...data.attendedGuests, ...data.notAttendedGuests];
+                    populateDropdown();
+                    updateCounter();
+                    renderCurrentGuest();
                 }
-            })
-            .catch(() => document.getElementById('guestCount').innerText = "خطأ");
+            } catch(e) { alert("خطأ في الاتصال"); }
+        }
+        fetchData();
 
-        // UI Logic
-        window.setTab = (id) => {
-            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-' + id).style.display = 'block';
-            event.target.classList.add('active');
+        // --- 2. إدارة الواجهة ---
+        function populateDropdown() {
+            const select = document.getElementById('guestSelect');
+            select.innerHTML = '';
+            guests.forEach((g, i) => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.innerText = `${i+1}. ${g.name}`;
+                select.appendChild(opt);
+            });
+        }
+
+        function updateCounter() {
+            document.getElementById('counterDisplay').innerText = `${currentIndex + 1} / ${guests.length}`;
+            document.getElementById('guestSelect').value = currentIndex;
+        }
+
+        function toggleSettings() {
+            document.getElementById('settingsPanel').classList.toggle('open');
+        }
+
+        // --- 3. التنقل ---
+        window.nextGuest = () => {
+            if(currentIndex < guests.length - 1) {
+                currentIndex++;
+                updateCounter();
+                renderCurrentGuest();
+            }
         };
 
+        window.prevGuest = () => {
+            if(currentIndex > 0) {
+                currentIndex--;
+                updateCounter();
+                renderCurrentGuest();
+            }
+        };
+
+        window.jumpToGuest = () => {
+            currentIndex = parseInt(document.getElementById('guestSelect').value);
+            updateCounter();
+            renderCurrentGuest();
+        };
+
+        // --- 4. الرسم (Render) ---
+        async function renderCurrentGuest() {
+            if(guests.length === 0) return;
+            const guest = guests[currentIndex];
+
+            // 1. توليد QR
+            const tempDiv = document.getElementById('hiddenQR');
+            tempDiv.innerHTML = '';
+            new QRCode(tempDiv, { text: guest.qrCode, width: state.qrSize, height: state.qrSize });
+
+            // انتظار بسيط لضمان رسم الـ QR
+            await new Promise(r => setTimeout(r, 50));
+            const qrImg = tempDiv.querySelector('img');
+
+            // 2. إعداد الكانفاس بدقة الصورة الأصلية
+            canvas.width = bgImg.width || 800;
+            canvas.height = bgImg.height || 600;
+
+            // 3. الرسم
+            ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+            if(qrImg) {
+                ctx.drawImage(qrImg, state.qrX, state.qrY, state.qrSize, state.qrSize);
+            } else {
+                // رسم مربع وهمي في حال تأخر الـ QR
+                ctx.fillStyle = "#000"; ctx.fillRect(state.qrX, state.qrY, state.qrSize, state.qrSize);
+            }
+
+            if(state.showName) {
+                ctx.font = `bold ${state.textSize}px 'Tajawal'`;
+                ctx.fillStyle = state.textColor;
+                ctx.textAlign = 'right';
+                ctx.fillText(guest.name, state.textX, state.textY);
+            }
+        }
+
+        // --- 5. ربط الإعدادات ---
         const bind = (id) => {
             const el = document.getElementById(id);
             el.addEventListener('input', (e) => {
@@ -216,10 +293,10 @@
                 state[id] = val;
                 const badge = document.getElementById('val-' + id);
                 if(badge) badge.innerText = val;
-                draw();
+                renderCurrentGuest();
             });
         };
-        ['qrSize', 'qrX', 'qrY', 'textSize', 'textX', 'textY', 'textColor', 'showName', 'batchSize'].forEach(bind);
+        ['qrSize', 'qrX', 'qrY', 'textSize', 'textX', 'textY', 'textColor', 'showName'].forEach(bind);
 
         document.getElementById('bgInput').addEventListener('change', (e) => {
             if(e.target.files[0]) {
@@ -229,7 +306,7 @@
                     bgImg.onload = () => {
                         const max = Math.max(bgImg.width, bgImg.height);
                         ['qrX','qrY','textX','textY'].forEach(id => document.getElementById(id).max = max);
-                        draw();
+                        renderCurrentGuest();
                     };
                     bgImg.src = evt.target.result;
                 };
@@ -237,119 +314,16 @@
             }
         });
 
-        function draw() {
-            canvas.width = bgImg.width || 800;
-            canvas.height = bgImg.height || 600;
-            ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-
-            ctx.fillStyle = "#000";
-            ctx.fillRect(state.qrX, state.qrY, state.qrSize, state.qrSize);
-            ctx.fillStyle = "#fff";
-            ctx.fillRect(state.qrX + 5, state.qrY + 5, state.qrSize - 10, state.qrSize - 10);
+        // --- 6. التحميل ---
+        function downloadCurrentPNG() {
+            if(guests.length === 0) return;
+            const guest = guests[currentIndex];
             
-            if(state.showName) {
-                ctx.font = `bold ${state.textSize}px 'Tajawal'`;
-                ctx.fillStyle = state.textColor;
-                ctx.textAlign = 'right';
-                ctx.fillText("اسم الضيف هنا", state.textX, state.textY);
-            }
-        }
-
-        // --- نظام الدفعات المتطور (Split Processing) ---
-        async function startSplitProcessing() {
-            if(guests.length === 0) return alert("لا يوجد بيانات");
-
-            const overlay = document.getElementById('progressOverlay');
-            const pText = document.getElementById('progressText');
-            const pSubText = document.getElementById('subProgressText');
-            const pFill = document.getElementById('progressFill');
-            
-            overlay.style.display = 'flex';
-            
-            // تقسيم المدعوين إلى مجموعات (Chunks)
-            const chunkSize = state.batchSize; 
-            const totalChunks = Math.ceil(guests.length / chunkSize);
-            const tempDiv = document.getElementById('hiddenQR');
-
-            // دالة لمعالجة مجموعة واحدة وتحميلها وتنظيف الذاكرة
-            const processChunk = async (chunkIndex) => {
-                if (chunkIndex >= totalChunks) {
-                    // انتهى الكل
-                    pText.innerText = "تم الانتهاء!";
-                    pSubText.innerText = "تم تحميل جميع الملفات.";
-                    document.getElementById('statusIcon').innerHTML = '<i class="fas fa-check-circle" style="color:#10b981; font-size:3rem;"></i>';
-                    setTimeout(() => overlay.style.display = 'none', 3000);
-                    return;
-                }
-
-                // تجهيز ملف ZIP جديد لهذه الدفعة
-                let zip = new JSZip(); // إنشاء جديد لكل دفعة
-                let folder = zip.folder(`Batch_${chunkIndex + 1}`);
-                
-                const start = chunkIndex * chunkSize;
-                const end = Math.min(start + chunkSize, guests.length);
-                
-                pText.innerText = `تجهيز الملف ${chunkIndex + 1} من ${totalChunks}`;
-                
-                // معالجة صور الدفعة الحالية
-                for (let i = start; i < end; i++) {
-                    const guest = guests[i];
-                    pSubText.innerText = `رسم بطاقة: ${guest.name}`;
-                    const percent = Math.round(((i + 1) / guests.length) * 100);
-                    pFill.style.width = `${percent}%`;
-
-                    // 1. QR Generation
-                    tempDiv.innerHTML = '';
-                    new QRCode(tempDiv, { text: guest.qrCode, width: state.qrSize, height: state.qrSize });
-                    
-                    // تأخير صغير لمنع التجميد
-                    await new Promise(r => setTimeout(r, 100));
-
-                    const qrImg = tempDiv.querySelector('img');
-                    if(qrImg) {
-                        const tCanvas = document.createElement('canvas');
-                        tCanvas.width = canvas.width;
-                        tCanvas.height = canvas.height;
-                        const tCtx = tCanvas.getContext('2d');
-
-                        tCtx.drawImage(bgImg, 0, 0);
-                        tCtx.drawImage(qrImg, state.qrX, state.qrY, state.qrSize, state.qrSize);
-
-                        if(state.showName) {
-                            tCtx.font = `bold ${state.textSize}px 'Tajawal'`;
-                            tCtx.fillStyle = state.textColor;
-                            tCtx.textAlign = 'right';
-                            tCtx.fillText(guest.name, state.textX, state.textY);
-                        }
-
-                        // إضافة للـ ZIP
-                        const imgData = tCanvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-                        const safeName = guest.name.replace(/[^a-z0-9\u0600-\u06FF]/gi, "_");
-                        folder.file(`${safeName}.jpg`, imgData, {base64: true});
-                        
-                        // تنظيف فوري
-                        tCanvas.width = 1; tCanvas.height = 1;
-                    }
-                }
-
-                // تحميل ملف ZIP للدفعة الحالية
-                pSubText.innerText = "جاري تحميل الملف المضغوط...";
-                const content = await zip.generateAsync({type:"blob"});
-                saveAs(content, `Invitations_Part${chunkIndex + 1}.zip`);
-
-                // تنظيف الذاكرة بشكل صريح
-                zip = null; 
-                
-                // انتظار 3 ثواني قبل الدفعة التالية (لإعطاء فرصة للتحميل)
-                pSubText.innerText = "استراحة قصيرة لتنظيف الذاكرة...";
-                await new Promise(r => setTimeout(r, 3000));
-
-                // الانتقال للدفعة التالية
-                processChunk(chunkIndex + 1);
-            };
-
-            // البدء
-            processChunk(0);
+            // تحويل الكانفاس إلى BLOB بأعلى دقة ممكنة
+            canvas.toBlob(function(blob) {
+                const safeName = guest.name.replace(/[^a-z0-9\u0600-\u06FF]/gi, "_");
+                saveAs(blob, `${safeName}.png`);
+            }, "image/png", 1.0); // 1.0 = Max Quality
         }
 
     </script>
