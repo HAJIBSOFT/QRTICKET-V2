@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HAJIB | التحميل اليدوي</title>
+    <title>HAJIB | مصمم الدعوات</title>
     
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -12,172 +12,202 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        :root { --bg: #111827; --panel: #1f2937; --primary: #3b82f6; --text: #f3f4f6; --success: #10b981; }
+        :root { --bg: #111827; --panel: #1f2937; --primary: #3b82f6; --text: #f3f4f6; --success: #10b981; --border: #374151; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-        body { margin: 0; font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { margin: 0; font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
 
-        /* Header */
-        header { background: var(--panel); padding: 10px 15px; height: 50px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #374151; }
-        .brand { font-weight: 800; color: var(--primary); font-size: 1rem; }
+        /* --- Sidebar (Right Panel) --- */
+        .sidebar {
+            width: 340px;
+            background: var(--panel);
+            border-left: 1px solid var(--border);
+            display: flex; flex-direction: column;
+            height: 100vh;
+            z-index: 100;
+            transition: transform 0.3s ease;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.3);
+        }
+
+        .sidebar-header {
+            padding: 15px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            background: #111827;
+        }
+        .brand { font-weight: 800; color: var(--primary); font-size: 1.1rem; }
+
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 20px; }
+
+        /* Control Groups */
+        .group-title { font-size: 0.85rem; color: #9ca3af; margin: 20px 0 10px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+        .control-row { margin-bottom: 15px; }
+        label { display: flex; justify-content: space-between; color: #d1d5db; margin-bottom: 5px; font-size: 0.9rem; }
+        .val-badge { color: var(--primary); font-weight: bold; font-size: 0.8rem; }
         
-        /* القائمة المنسدلة للضيوف */
-        .guest-select-container { flex: 1; margin: 0 10px; max-width: 200px; }
-        select { width: 100%; background: #374151; color: white; border: 1px solid #4b5563; padding: 5px; border-radius: 5px; font-family: inherit; }
+        input[type="range"] { width: 100%; height: 6px; background: #4b5563; border-radius: 5px; appearance: none; cursor: pointer; }
+        input[type="range"]::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; background: var(--primary); border-radius: 50%; border: 2px solid white; }
+        input[type="file"] { font-size: 0.8rem; width: 100%; background: var(--bg); padding: 8px; border-radius: 5px; }
 
-        /* منطقة العمل */
-        .workspace { flex: 1; display: flex; flex-direction: column; position: relative; }
+        /* Navigation & Actions Area (Fixed at bottom of sidebar) */
+        .sidebar-footer {
+            padding: 15px; background: #111827; border-top: 1px solid var(--border);
+            display: flex; flex-direction: column; gap: 10px;
+        }
 
-        /* المعاينة */
-        .preview-container {
-            flex: 1; background: #000; display: flex; justify-content: center; align-items: center;
-            overflow: hidden; 
+        .nav-row { display: flex; gap: 10px; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .btn-nav { background: var(--panel); border: 1px solid var(--border); color: white; width: 45px; height: 45px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+        .counter { font-size: 0.9rem; color: #9ca3af; font-family: monospace; }
+        
+        .btn-download {
+            width: 100%; background: var(--success); color: white; border: none; padding: 12px;
+            border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+            font-size: 1rem; transition: 0.2s;
+        }
+        .btn-download:hover { background: #059669; }
+        .btn-download:active { transform: scale(0.98); }
+
+        /* --- Main Preview Area --- */
+        .main-area {
+            flex: 1; display: flex; flex-direction: column; position: relative;
+            background: #000;
             background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px;
         }
-        /* الكانفاس يظهر مصغراً ليناسب الشاشة لكنه يحتفظ بدقته داخلياً */
+
+        .canvas-container {
+            flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; padding: 20px;
+        }
         canvas { 
-            max-width: 95%; max-height: 95%; 
-            box-shadow: 0 0 20px rgba(0,0,0,0.5); 
+            max-width: 100%; max-height: 100%; 
+            box-shadow: 0 0 30px rgba(0,0,0,0.5); 
             object-fit: contain;
         }
 
-        /* أدوات التحكم السفلية */
-        .bottom-bar {
-            background: var(--panel); border-top: 1px solid #374151;
-            padding: 10px; display: flex; flex-direction: column; gap: 10px;
-            z-index: 100;
+        /* --- Mobile Toggle Button --- */
+        .mobile-toggle {
+            display: none; position: absolute; top: 15px; left: 15px;
+            background: var(--primary); color: white; border: none; padding: 10px;
+            border-radius: 50%; width: 45px; height: 45px; z-index: 200;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 1.2rem; cursor: pointer;
         }
 
-        /* أزرار التنقل والتحميل */
-        .nav-controls { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
-        .btn-nav { background: #374151; color: white; border: 1px solid #4b5563; width: 50px; height: 50px; border-radius: 10px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;}
-        .btn-download { flex: 1; background: var(--success); color: white; border: none; height: 50px; border-radius: 10px; font-weight: bold; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); }
-        .btn-download:active { transform: scale(0.98); }
-
-        /* زر الإعدادات */
-        .settings-toggle { text-align: center; color: #9ca3af; font-size: 0.8rem; padding: 5px; cursor: pointer; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 5px;}
-        
-        /* لوحة الإعدادات (مخفية افتراضياً) */
-        .settings-panel {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 60%; 
-            background: rgba(31, 41, 55, 0.98); backdrop-filter: blur(10px);
-            border-top: 1px solid var(--primary);
-            transition: transform 0.3s ease;
-            transform: translateY(100%); /* مخفية للأسفل */
-            z-index: 200; display: flex; flex-direction: column;
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; right: 0; top: 0; transform: translateX(100%); width: 85%; max-width: 320px; }
+            .sidebar.open { transform: translateX(0); }
+            .mobile-toggle { display: flex; align-items: center; justify-content: center; }
+            
+            /* Overlay for mobile when sidebar is open */
+            .overlay {
+                display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: rgba(0,0,0,0.5); z-index: 90; backdrop-filter: blur(3px);
+            }
+            .overlay.active { display: block; }
         }
-        .settings-panel.open { transform: translateY(0); }
-        
-        .settings-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .settings-content { flex: 1; overflow-y: auto; padding: 20px; }
-        
-        .control-row { margin-bottom: 20px; }
-        label { display: flex; justify-content: space-between; color: #d1d5db; margin-bottom: 8px; font-size: 0.9rem; }
-        input[type="range"] { width: 100%; height: 6px; background: #4b5563; border-radius: 5px; appearance: none; }
-        input[type="range"]::-webkit-slider-thumb { appearance: none; width: 22px; height: 22px; background: var(--primary); border-radius: 50%; border: 2px solid white; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="brand">HAJIB</div>
-        <div class="guest-select-container">
-            <select id="guestSelect" onchange="jumpToGuest()">
-                <option value="-1">جاري التحميل...</option>
-            </select>
-        </div>
-        <div style="font-size:0.8rem; color:#9ca3af;" id="counterDisplay">0/0</div>
-    </header>
+    <!-- زر القائمة للجوال -->
+    <button class="mobile-toggle" onclick="toggleSidebar()"><i class="fas fa-sliders-h"></i></button>
+    <div class="overlay" onclick="toggleSidebar()"></div>
 
-    <div class="workspace">
-        <div class="preview-container">
-            <canvas id="canvas"></canvas>
+    <!-- القائمة الجانبية (يمين) -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="brand"><i class="fas fa-paint-brush"></i> مصمم الدعوات</div>
+            <button onclick="toggleSidebar()" style="background:none; border:none; color:#9ca3af; display:none;" id="closeSidebar"><i class="fas fa-times"></i></button>
         </div>
 
-        <div class="bottom-bar">
-            <!-- أزرار التحكم الرئيسية -->
-            <div class="nav-controls">
-                <button class="btn-nav" onclick="prevGuest()"><i class="fas fa-chevron-right"></i></button>
-                
-                <button class="btn-download" onclick="downloadCurrentPNG()">
-                    <i class="fas fa-download"></i> تحميل PNG
-                </button>
-                
-                <button class="btn-nav" onclick="nextGuest()"><i class="fas fa-chevron-left"></i></button>
+        <div class="sidebar-content">
+            <!-- 1. الخلفية -->
+            <div class="group-title">1. التصميم</div>
+            <div class="control-row">
+                <input type="file" id="bgInput" accept="image/*">
+            </div>
+
+            <!-- 2. الباركود -->
+            <div class="group-title">2. الباركود (QR)</div>
+            <div class="control-row">
+                <label>الحجم <span><b id="val-qrSize">150</b>px</span></label>
+                <input type="range" id="qrSize" min="50" max="600" value="150">
+            </div>
+            <div class="control-row">
+                <label>أفقي (X)</label>
+                <input type="range" id="qrX" min="0" max="2000" value="50">
+            </div>
+            <div class="control-row">
+                <label>عمودي (Y)</label>
+                <input type="range" id="qrY" min="0" max="2000" value="50">
+            </div>
+            <div class="control-row" style="background:rgba(255,255,255,0.05); padding:8px; border-radius:5px;">
+                <label style="margin:0; font-size:0.8rem; color:#10b981;">
+                    <i class="fas fa-check-circle"></i> تم تفعيل خلفية بيضاء للباركود
+                </label>
+            </div>
+
+            <!-- 3. الاسم -->
+            <div class="group-title">3. اسم الضيف</div>
+            <div class="control-row" style="display:flex; align-items:center; gap:10px;">
+                <input type="checkbox" id="showName" checked style="width:20px; height:20px;">
+                <label style="margin:0;">إظهار الاسم</label>
+            </div>
+            <div class="control-row">
+                <label>حجم الخط <span><b id="val-textSize">40</b>px</span></label>
+                <input type="range" id="textSize" min="10" max="200" value="40">
+            </div>
+            <div class="control-row">
+                <label>أفقي (X)</label>
+                <input type="range" id="textX" min="0" max="2000" value="50">
+            </div>
+            <div class="control-row">
+                <label>عمودي (Y)</label>
+                <input type="range" id="textY" min="0" max="2000" value="300">
+            </div>
+            <div class="control-row">
+                <label>لون النص</label>
+                <input type="color" id="textColor" value="#ffffff" style="width:100%; height:40px; border:none; padding:0; background:none;">
+            </div>
+        </div>
+
+        <!-- أدوات التنقل والتحميل -->
+        <div class="sidebar-footer">
+            <div class="control-row" style="margin:0;">
+                <select id="guestSelect" onchange="jumpToGuest()" style="width:100%; padding:8px; background:#374151; color:white; border:1px solid #4b5563; border-radius:5px;">
+                    <option>جاري التحميل...</option>
+                </select>
             </div>
             
-            <div class="settings-toggle" onclick="toggleSettings()">
-                <i class="fas fa-sliders-h"></i> تعديل التصميم والمواقع
+            <div class="nav-row">
+                <button class="btn-nav" onclick="nextGuest()"><i class="fas fa-chevron-right"></i></button>
+                <span class="counter" id="counterDisplay">0 / 0</span>
+                <button class="btn-nav" onclick="prevGuest()"><i class="fas fa-chevron-left"></i></button>
             </div>
+
+            <button class="btn-download" onclick="downloadCurrentPNG()">
+                <i class="fas fa-download"></i> تحميل البطاقة (PNG)
+            </button>
         </div>
+    </aside>
 
-        <!-- لوحة الإعدادات المنبثقة -->
-        <div class="settings-panel" id="settingsPanel">
-            <div class="settings-header">
-                <span style="font-weight:bold; color:var(--primary);">إعدادات التصميم</span>
-                <button onclick="toggleSettings()" style="background:none; border:none; color:white; font-size:1.2rem;"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="settings-content">
-                <!-- رفع الصورة -->
-                <div class="control-row">
-                    <label>صورة الخلفية</label>
-                    <input type="file" id="bgInput" accept="image/*" style="width:100%; padding:10px; background:#111827; border-radius:5px; color:white;">
-                </div>
-
-                <!-- إعدادات الاسم -->
-                <div class="control-row" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
-                    <label>
-                        <span>إظهار الاسم</span>
-                        <input type="checkbox" id="showName" checked style="width:20px; height:20px;">
-                    </label>
-                </div>
-                <div class="control-row">
-                    <label>حجم الخط <span><b id="val-textSize">40</b>px</span></label>
-                    <input type="range" id="textSize" min="10" max="200" value="40">
-                </div>
-                <div class="control-row">
-                    <label>موضع الاسم (X)</label>
-                    <input type="range" id="textX" min="0" max="2000" value="50">
-                </div>
-                <div class="control-row">
-                    <label>موضع الاسم (Y)</label>
-                    <input type="range" id="textY" min="0" max="2000" value="300">
-                </div>
-                <div class="control-row">
-                    <label>لون النص</label>
-                    <input type="color" id="textColor" value="#ffffff" style="width:100%; height:40px; border:none;">
-                </div>
-
-                <!-- إعدادات الباركود -->
-                <div class="control-row" style="border-top:1px solid rgba(255,255,255,0.1); padding-top:15px; margin-top:15px;">
-                    <label>حجم الباركود <span><b id="val-qrSize">150</b>px</span></label>
-                    <input type="range" id="qrSize" min="50" max="600" value="150">
-                </div>
-                <div class="control-row">
-                    <label>موضع الباركود (X)</label>
-                    <input type="range" id="qrX" min="0" max="2000" value="50">
-                </div>
-                <div class="control-row">
-                    <label>موضع الباركود (Y)</label>
-                    <input type="range" id="qrY" min="0" max="2000" value="50">
-                </div>
-            </div>
+    <!-- منطقة المعاينة -->
+    <main class="main-area">
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
         </div>
-    </div>
+    </main>
 
-    <!-- عنصر مخفي لتوليد QR -->
+    <!-- عنصر مخفي -->
     <div id="hiddenQR" style="display:none;"></div>
 
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbzcJyxjZ4DcOKkboUYvDOrkWs5PVsKScetEzEvSXwzIL3sFGb0JHHVpTzZRksiaBJsW/exec';
         
-        // المتغيرات العامة
         let guests = [];
         let currentIndex = 0;
         let bgImg = new Image();
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
-        // إعدادات التصميم
+        // الإعدادات
         const state = {
             qrSize: 150, qrX: 50, qrY: 50,
             showName: true, textSize: 40, textX: 50, textY: 300, textColor: '#ffffff'
@@ -187,95 +217,84 @@
         bgImg.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+gAAALQCAIAAACw5t5xAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABTSURBVHhe7cExAQAAAMKg9U9tDQ8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4McIsHgAAa1w1XEAAAAASUVORK5CYII=";
         bgImg.onload = renderCurrentGuest;
 
-        // --- 1. جلب البيانات ---
+        // جلب البيانات
         async function fetchData() {
             try {
-                const formData = new FormData(); formData.append('action', 'getDetailedReport');
-                const res = await fetch(API_URL, { method: 'POST', body: formData });
+                const fd = new FormData(); fd.append('action', 'getDetailedReport');
+                const res = await fetch(API_URL, { method: 'POST', body: fd });
                 const data = await res.json();
-                
                 if(data.success) {
                     guests = [...data.attendedGuests, ...data.notAttendedGuests];
                     populateDropdown();
-                    updateCounter();
+                    updateUI();
                     renderCurrentGuest();
                 }
-            } catch(e) { alert("خطأ في الاتصال"); }
+            } catch(e) { console.error(e); }
         }
         fetchData();
 
-        // --- 2. إدارة الواجهة ---
+        // UI Helpers
         function populateDropdown() {
-            const select = document.getElementById('guestSelect');
-            select.innerHTML = '';
+            const sel = document.getElementById('guestSelect'); sel.innerHTML = '';
             guests.forEach((g, i) => {
                 const opt = document.createElement('option');
-                opt.value = i;
-                opt.innerText = `${i+1}. ${g.name}`;
-                select.appendChild(opt);
+                opt.value = i; opt.innerText = `${i+1}. ${g.name}`;
+                sel.appendChild(opt);
             });
         }
-
-        function updateCounter() {
+        function updateUI() {
             document.getElementById('counterDisplay').innerText = `${currentIndex + 1} / ${guests.length}`;
             document.getElementById('guestSelect').value = currentIndex;
         }
-
-        function toggleSettings() {
-            document.getElementById('settingsPanel').classList.toggle('open');
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.querySelector('.overlay').classList.toggle('active');
+            // Show close button only on mobile when open
+            const closeBtn = document.getElementById('closeSidebar');
+            if(window.innerWidth <= 768) closeBtn.style.display = 'block';
         }
 
-        // --- 3. التنقل ---
-        window.nextGuest = () => {
-            if(currentIndex < guests.length - 1) {
-                currentIndex++;
-                updateCounter();
-                renderCurrentGuest();
-            }
-        };
+        // Navigation
+        window.nextGuest = () => { if(currentIndex < guests.length-1) { currentIndex++; updateUI(); renderCurrentGuest(); } };
+        window.prevGuest = () => { if(currentIndex > 0) { currentIndex--; updateUI(); renderCurrentGuest(); } };
+        window.jumpToGuest = () => { currentIndex = parseInt(document.getElementById('guestSelect').value); updateUI(); renderCurrentGuest(); };
 
-        window.prevGuest = () => {
-            if(currentIndex > 0) {
-                currentIndex--;
-                updateCounter();
-                renderCurrentGuest();
-            }
-        };
-
-        window.jumpToGuest = () => {
-            currentIndex = parseInt(document.getElementById('guestSelect').value);
-            updateCounter();
-            renderCurrentGuest();
-        };
-
-        // --- 4. الرسم (Render) ---
+        // --- Render Logic (With White Background) ---
         async function renderCurrentGuest() {
             if(guests.length === 0) return;
             const guest = guests[currentIndex];
 
-            // 1. توليد QR
-            const tempDiv = document.getElementById('hiddenQR');
-            tempDiv.innerHTML = '';
+            // 1. Generate QR
+            const tempDiv = document.getElementById('hiddenQR'); tempDiv.innerHTML = '';
             new QRCode(tempDiv, { text: guest.qrCode, width: state.qrSize, height: state.qrSize });
-
-            // انتظار بسيط لضمان رسم الـ QR
             await new Promise(r => setTimeout(r, 50));
             const qrImg = tempDiv.querySelector('img');
 
-            // 2. إعداد الكانفاس بدقة الصورة الأصلية
-            canvas.width = bgImg.width || 800;
-            canvas.height = bgImg.height || 600;
+            // 2. Setup Canvas
+            canvas.width = bgImg.width || 800; canvas.height = bgImg.height || 600;
 
-            // 3. الرسم
+            // 3. Draw Background
             ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
+            // 4. Draw QR with White Box
+            // حجم الهامش الأبيض (Padding)
+            const padding = 10; 
+            const boxX = state.qrX - padding;
+            const boxY = state.qrY - padding;
+            const boxSize = state.qrSize + (padding * 2);
+
+            // رسم المربع الأبيض
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(boxX, boxY, boxSize, boxSize);
+
+            // رسم الباركود فوق المربع الأبيض
             if(qrImg) {
                 ctx.drawImage(qrImg, state.qrX, state.qrY, state.qrSize, state.qrSize);
             } else {
-                // رسم مربع وهمي في حال تأخر الـ QR
                 ctx.fillStyle = "#000"; ctx.fillRect(state.qrX, state.qrY, state.qrSize, state.qrSize);
             }
 
+            // 5. Draw Name
             if(state.showName) {
                 ctx.font = `bold ${state.textSize}px 'Tajawal'`;
                 ctx.fillStyle = state.textColor;
@@ -284,48 +303,38 @@
             }
         }
 
-        // --- 5. ربط الإعدادات ---
+        // Bind Controls
         const bind = (id) => {
-            const el = document.getElementById(id);
-            el.addEventListener('input', (e) => {
-                let val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-                if(e.target.type === 'range') val = parseInt(val);
+            document.getElementById(id).addEventListener('input', (e) => {
+                let val = e.target.type==='checkbox'?e.target.checked:e.target.value;
+                if(e.target.type==='range') val = parseInt(val);
                 state[id] = val;
-                const badge = document.getElementById('val-' + id);
-                if(badge) badge.innerText = val;
+                if(document.getElementById('val-'+id)) document.getElementById('val-'+id).innerText = val;
                 renderCurrentGuest();
             });
         };
-        ['qrSize', 'qrX', 'qrY', 'textSize', 'textX', 'textY', 'textColor', 'showName'].forEach(bind);
+        ['qrSize','qrX','qrY','textSize','textX','textY','textColor','showName'].forEach(bind);
 
         document.getElementById('bgInput').addEventListener('change', (e) => {
             if(e.target.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (evt) => {
+                const r = new FileReader();
+                r.onload = (ev) => {
                     bgImg = new Image();
                     bgImg.onload = () => {
-                        const max = Math.max(bgImg.width, bgImg.height);
-                        ['qrX','qrY','textX','textY'].forEach(id => document.getElementById(id).max = max);
+                        const m = Math.max(bgImg.width, bgImg.height);
+                        ['qrX','qrY','textX','textY'].forEach(id => document.getElementById(id).max = m);
                         renderCurrentGuest();
                     };
-                    bgImg.src = evt.target.result;
+                    bgImg.src = ev.target.result;
                 };
-                reader.readAsDataURL(e.target.files[0]);
+                r.readAsDataURL(e.target.files[0]);
             }
         });
 
-        // --- 6. التحميل ---
         function downloadCurrentPNG() {
             if(guests.length === 0) return;
-            const guest = guests[currentIndex];
-            
-            // تحويل الكانفاس إلى BLOB بأعلى دقة ممكنة
-            canvas.toBlob(function(blob) {
-                const safeName = guest.name.replace(/[^a-z0-9\u0600-\u06FF]/gi, "_");
-                saveAs(blob, `${safeName}.png`);
-            }, "image/png", 1.0); // 1.0 = Max Quality
+            canvas.toBlob(blob => saveAs(blob, `${guests[currentIndex].name.replace(/[^a-z0-9]/gi, "_")}.png`), "image/png", 1.0);
         }
-
     </script>
 </body>
 </html>
