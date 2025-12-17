@@ -7,6 +7,11 @@
     
     <!-- مكتبات ضرورية -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <!-- مكتبة لضغط الملفات (ZIP) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- مكتبة لحفظ الملفات -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -15,6 +20,7 @@
             --bg: #111827;
             --panel: #1f2937;
             --primary: #3b82f6;
+            --success: #10b981;
             --text: #f3f4f6;
             --border: #374151;
         }
@@ -54,6 +60,9 @@
         .btn-primary { background: var(--primary); color: white; margin-top: auto; }
         .btn-primary:hover { background: #2563eb; }
         .btn-primary:disabled { background: #4b5563; cursor: not-allowed; }
+        
+        .btn-success { background: var(--success); color: white; margin-top: 10px; }
+        .btn-success:hover { background: #059669; }
 
         /* Preview Area */
         .preview-area {
@@ -63,16 +72,6 @@
         }
         canvas {
             box-shadow: 0 0 50px rgba(0,0,0,0.5); max-width: 100%; max-height: 100%; object-fit: contain;
-        }
-
-        /* --- Print Styles --- */
-        #print-container { display: none; }
-        @media print {
-            body { background: white; height: auto; display: block; }
-            header, .workspace, .controls { display: none !important; }
-            #print-container { display: block !important; }
-            .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } /* صورتين في الصفحة */
-            .print-grid img { width: 100%; height: auto; page-break-inside: avoid; border: 1px solid #eee; }
         }
     </style>
 </head>
@@ -135,9 +134,15 @@
                 </select>
             </div>
 
-            <button id="printBtn" class="btn btn-primary" onclick="startGeneration()">
-                <i class="fas fa-print"></i> توليد وطباعة البطاقات
+            <button id="downloadZipBtn" class="btn btn-primary" onclick="generateAndZip()">
+                <i class="fas fa-file-archive"></i> تحميل الكل (ZIP)
             </button>
+
+            <!-- زر إضافي لتحميل الصورة المعروضة حالياً فقط للتجربة -->
+            <button class="btn btn-success" onclick="downloadCurrentPreview()">
+                <i class="fas fa-download"></i> تحميل المعاينة الحالية
+            </button>
+
         </aside>
 
         <!-- منطقة المعاينة -->
@@ -148,11 +153,9 @@
     </div>
 
     <!-- حاويات مخفية للمعالجة -->
-    <div id="print-container"></div>
     <div id="tempQR" style="display:none;"></div>
 
     <script>
-        // --- إعدادات الرابط ---
         const API_URL = 'https://script.google.com/macros/s/AKfycbzcJyxjZ4DcOKkboUYvDOrkWs5PVsKScetEzEvSXwzIL3sFGb0JHHVpTzZRksiaBJsW/exec';
         
         let allGuests = [];
@@ -166,17 +169,14 @@
             textSize: 40, textX: 50, textY: 300, textColor: '#ffffff', textAlign: 'right'
         };
 
-        // صورة افتراضية (مساحة بيضاء) حتى يرفع المستخدم صورته
         bgImage.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+gAAALQCAIAAACw5t5xAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABTSURBVHhe7cExAQAAAMKg9U9tDQ8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4McIsHgAAa1w1XEAAAAASUVORK5CYII=";
         bgImage.onload = () => drawPreview();
 
-        // --- 1. جلب البيانات عند فتح الصفحة ---
+        // --- 1. جلب البيانات ---
         async function fetchData() {
             const statusEl = document.getElementById('dataStatus');
             const badgeEl = document.getElementById('guestCountBadge');
-            
             statusEl.style.display = 'inline-block';
-            statusEl.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> جاري الاتصال بقاعدة البيانات...';
 
             try {
                 const formData = new FormData();
@@ -185,29 +185,24 @@
                 const data = await res.json();
 
                 if(data.success) {
-                    // دمج القوائم
                     allGuests = [...data.attendedGuests, ...data.notAttendedGuests];
                     badgeEl.innerText = `${allGuests.length} مدعوين`;
                     badgeEl.style.background = '#065f46';
                     statusEl.style.display = 'none';
                 }
             } catch(e) {
-                statusEl.innerHTML = '<span style="color:red">خطأ في الاتصال!</span>';
-                console.error(e);
+                statusEl.innerHTML = '<span style="color:red">خطأ اتصال</span>';
             }
         }
         fetchData();
 
-        // --- 2. التحكم في التصميم ---
-        
-        // رفع الصورة
+        // --- 2. التحكم ---
         document.getElementById('bgInput').addEventListener('change', function(e) {
             if (e.target.files && e.target.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     bgImage = new Image();
                     bgImage.onload = function() {
-                        // تحديث الحد الأقصى للمتغيرات بناءً على حجم الصورة
                         ['qrX', 'qrY', 'textX', 'textY'].forEach(id => {
                             document.getElementById(id).max = Math.max(bgImage.width, bgImage.height);
                         });
@@ -219,7 +214,6 @@
             }
         });
 
-        // ربط المدخلات (Sliders)
         ['qrSize', 'qrX', 'qrY', 'textSize', 'textX', 'textY'].forEach(id => {
             document.getElementById(id).addEventListener('input', (e) => {
                 settings[id] = parseInt(e.target.value);
@@ -230,22 +224,19 @@
         document.getElementById('textColor').addEventListener('input', (e) => { settings.textColor = e.target.value; drawPreview(); });
         document.getElementById('textAlign').addEventListener('change', (e) => { settings.textAlign = e.target.value; drawPreview(); });
 
-        // --- 3. رسم المعاينة ---
+        // --- 3. المعاينة ---
         function drawPreview() {
-            // ضبط حجم الكانفاس بحجم الصورة
             canvas.width = bgImage.width || 800;
             canvas.height = bgImage.height || 600;
 
-            // 1. الخلفية
             ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
 
-            // 2. مربع وهمي للباركود
+            // مربع وهمي
             ctx.fillStyle = "#000";
             ctx.fillRect(settings.qrX, settings.qrY, settings.qrSize, settings.qrSize);
             ctx.fillStyle = "#fff";
-            ctx.fillRect(settings.qrX + 10, settings.qrY + 10, settings.qrSize - 20, settings.qrSize - 20); // تفاصيل وهمية
+            ctx.fillRect(settings.qrX + 10, settings.qrY + 10, settings.qrSize - 20, settings.qrSize - 20); 
             
-            // 3. النص (اسم افتراضي)
             ctx.font = `bold ${settings.textSize}px 'Tajawal', sans-serif`;
             ctx.fillStyle = settings.textColor;
             ctx.textAlign = settings.textAlign;
@@ -253,78 +244,71 @@
             ctx.fillText("اسم الضيف الكريم", settings.textX, settings.textY);
         }
 
-        // --- 4. التوليد والطباعة (الجزء المعقد) ---
-        async function startGeneration() {
-            if(allGuests.length === 0) return alert("لا يوجد بيانات للمدعوين، تأكد من الاتصال بالإنترنت.");
+        // --- 4. وظيفة تحميل المعاينة الحالية فقط ---
+        function downloadCurrentPreview() {
+            const link = document.createElement('a');
+            link.download = 'نموذج_الدعوة.png';
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        }
+
+        // --- 5. وظيفة توليد ZIP (الميزة المطلوبة) ---
+        async function generateAndZip() {
+            if(allGuests.length === 0) return alert("انتظر تحميل البيانات أولاً...");
             
-            const btn = document.getElementById('printBtn');
+            const btn = document.getElementById('downloadZipBtn');
             const originalText = btn.innerHTML;
-            const container = document.getElementById('print-container');
-            
             btn.disabled = true;
-            container.innerHTML = '<div class="print-grid"></div>';
-            const grid = container.querySelector('.print-grid');
 
-            // دالة مساعدة لتوليد صورة واحدة
-            const createCard = (guest) => {
-                return new Promise((resolve) => {
-                    // 1. توليد QR في عنصر مخفي
-                    const tempDiv = document.createElement('div');
-                    // نستخدم مكتبة qrcodejs
-                    const qr = new QRCode(tempDiv, {
-                        text: guest.qrCode,
-                        width: settings.qrSize,
-                        height: settings.qrSize,
-                        correctLevel : QRCode.CorrectLevel.H
-                    });
+            const zip = new JSZip(); // إنشاء ملف مضغوط جديد
+            const folder = zip.folder("دعوات_الحضور");
 
-                    // انتظار بسيط لضمان رسم الـ QR
-                    setTimeout(() => {
-                        const qrImg = tempDiv.querySelector('img');
-                        if(!qrImg) return resolve(null);
+            // دالة مساعدة لتنظيف اسم الملف
+            const cleanFileName = (name) => name.replace(/[^a-z0-9\u0600-\u06FF ]/gi, "_").trim();
 
-                        // 2. رسم البطاقة النهائية في كانفاس مؤقت
-                        const tempCanvas = document.createElement('canvas');
-                        tempCanvas.width = canvas.width;
-                        tempCanvas.height = canvas.height;
-                        const tCtx = tempCanvas.getContext('2d');
-
-                        // رسم الخلفية
-                        tCtx.drawImage(bgImage, 0, 0);
-                        
-                        // رسم الـ QR الحقيقي
-                        tCtx.drawImage(qrImg, settings.qrX, settings.qrY, settings.qrSize, settings.qrSize);
-
-                        // رسم الاسم الحقيقي
-                        tCtx.font = `bold ${settings.textSize}px 'Tajawal', sans-serif`;
-                        tCtx.fillStyle = settings.textColor;
-                        tCtx.textAlign = settings.textAlign;
-                        tCtx.textBaseline = 'middle';
-                        tCtx.fillText(guest.name, settings.textX, settings.textY);
-
-                        // 3. تحويل الكانفاس لصورة
-                        const finalImg = document.createElement('img');
-                        finalImg.src = tempCanvas.toDataURL('image/jpeg', 0.85); // جودة 85% لتقليل الحجم
-                        resolve(finalImg);
-                    }, 20); // 20ms delay
-                });
-            };
-
-            // حلقة تكرارية للمعالجة
             for (let i = 0; i < allGuests.length; i++) {
-                btn.innerHTML = `<i class="fas fa-cog fa-spin"></i> جاري المعالجة (${i + 1} من ${allGuests.length})`;
-                const img = await createCard(allGuests[i]);
-                if(img) grid.appendChild(img);
+                const guest = allGuests[i];
+                btn.innerHTML = `<i class="fas fa-cog fa-spin"></i> معالجة ${i + 1} من ${allGuests.length}`;
+                
+                // 1. توليد QR
+                const tempDiv = document.createElement('div');
+                new QRCode(tempDiv, { text: guest.qrCode, width: settings.qrSize, height: settings.qrSize });
+                
+                // انتظار بسيط
+                await new Promise(r => setTimeout(r, 20));
+                
+                const qrImg = tempDiv.querySelector('img');
+                if(qrImg) {
+                    // 2. الرسم على كانفاس مخفي
+                    const tCanvas = document.createElement('canvas');
+                    tCanvas.width = canvas.width;
+                    tCanvas.height = canvas.height;
+                    const tCtx = tCanvas.getContext('2d');
+
+                    tCtx.drawImage(bgImage, 0, 0);
+                    tCtx.drawImage(qrImg, settings.qrX, settings.qrY, settings.qrSize, settings.qrSize);
+                    
+                    tCtx.font = `bold ${settings.textSize}px 'Tajawal', sans-serif`;
+                    tCtx.fillStyle = settings.textColor;
+                    tCtx.textAlign = settings.textAlign;
+                    tCtx.textBaseline = 'middle';
+                    tCtx.fillText(guest.name, settings.textX, settings.textY);
+
+                    // 3. إضافة الملف للـ ZIP
+                    const imgData = tCanvas.toDataURL("image/png").split(',')[1]; // حذف الـ header من الـ base64
+                    folder.file(`${cleanFileName(guest.name)}.png`, imgData, {base64: true});
+                }
             }
 
-            btn.innerHTML = '<i class="fas fa-check"></i> جاهز للطباعة!';
+            btn.innerHTML = '<i class="fas fa-file-archive"></i> جاري ضغط الملفات...';
             
-            // انتظار تحميل الصور في الـ DOM
-            setTimeout(() => {
-                window.print();
-                btn.disabled = false;
+            // توليد الملف النهائي وتحميله
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                saveAs(content, "بطاقات_الدعوة.zip");
                 btn.innerHTML = originalText;
-            }, 1000);
+                btn.disabled = false;
+                alert("تم تحميل الملف المضغوط بنجاح!");
+            });
         }
 
     </script>
