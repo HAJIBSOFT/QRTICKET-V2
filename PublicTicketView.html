@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تذكرة</title>
+    <title>تذكرة الرقمية</title>
     
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -53,31 +53,28 @@
         .ticket-header { padding: 40px 20px 20px; text-align: center; }
         .event-title { font-family: 'Cairo', sans-serif; font-weight: 900; font-size: 1.8rem; color: white; margin-bottom: 5px; }
         .guest-name { font-family: 'Cairo', sans-serif; font-size: 2rem; font-weight: 700; color: white; margin-bottom: 10px; }
+        
         .ticket-footer { background: rgba(0, 0, 0, 0.2); padding: 30px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; }
         .qr-frame { background: white; padding: 10px; border-radius: 15px; margin-bottom: 15px; }
         
-        /* تنسيق زر آيفون */
-        #appleWalletContainer { display: none; margin-top: 20px; width: 100%; }
+        /* تنسيق زر آيفون الجديد بالصورة المطلوبة */
+        #appleWalletContainer { display: none; margin-top: 15px; width: 100%; }
         .apple-wallet-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: black;
-            color: white;
-            padding: 12px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 600;
-            border: 1px solid #444;
-            width: 100%;
+            background: none;
+            border: none;
+            padding: 0;
             cursor: pointer;
-            transition: 0.2s;
+            transition: transform 0.2s ease;
+            display: inline-block;
         }
-        .apple-wallet-button:active { transform: scale(0.97); }
-        .apple-wallet-button img { height: 20px; margin-left: 10px; }
+        .apple-wallet-button:active { transform: scale(0.95); }
+        .apple-wallet-button img {
+            width: 180px; /* حجم الزر */
+            height: auto;
+            display: block;
+        }
 
-        .status-indicator { padding: 8px 24px; border-radius: 50px; font-weight: bold; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .status-indicator { padding: 8px 24px; border-radius: 50px; font-weight: bold; border: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 5px; }
         .st-valid .status-indicator { color: var(--st-valid); border-color: var(--st-valid); }
         .st-used .status-indicator { color: var(--st-used); border-color: var(--st-used); }
         .st-invalid .status-indicator { color: var(--st-invalid); border-color: var(--st-invalid); }
@@ -112,21 +109,23 @@
                     <div id="qrcodeDisplay"></div>
                 </div>
                 <div id="ticketIdText" style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 15px;">ID: ...</div>
+                
                 <div class="status-indicator" id="statusBadge">جاري التحقق...</div>
 
-                <!-- زر محفظة أبل -->
+                <!-- زر محفظة أبل باستخدام الصورة المطلوبة -->
                 <div id="appleWalletContainer">
                     <button onclick="addToAppleWallet()" class="apple-wallet-button" id="walletBtn">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/b/b2/Add_to_Apple_Wallet_logo.svg" alt="Apple Wallet">
-                        إضافة إلى المحفظة
+                        <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhoXzwbsszXm6o4CnAGon7WqRGEQUpuhM057aAAyU6QZE77KlI6JLfNh2nPG4Bhkbjvj08GstICO0IUNJJuFBg-Xn1JnrMZbBF8DGeudBSv7q9D8YXhgB8outcHSMleh2h8DolK6M9CB70SdFsZm2xW29akyhQDkc2c7TigkDMudtz1dC2GBtBjiIRHJKbN/s3840/Add_to_Apple_Wallet_badge.svg.png" alt="Add to Apple Wallet">
                     </button>
+                    <p id="walletLoader" style="display:none; font-size: 12px; color: var(--accent); margin-top: 5px;">جاري التحميل...</p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxDCG5Qmb5_WgoYof2Us1I-RJXft2HY2DQhWl-7WclA-JnGf6ee-2YkoGVSS00YOGpw/exec'; // ضع رابط الـ Web App الخاص بك هنا
+        // هام: استبدل الرابط أدناه برابط السكربت (Web App URL) الخاص بك بعد النشر
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby4mPzJLIF_CrIGpXZgjesenG6vnXePy3LV_R4UmXPu-XlNelgk87YYa4lbDSffSzmS/exec'; 
 
         let currentGuestName = "";
         let currentQrData = "";
@@ -134,11 +133,14 @@
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
             const qrDataParam = urlParams.get('qrData');
-            const eventNameParam = urlParams.get('eventName') || "تذكرة خاصة";
+            const eventNameParam = urlParams.get('eventName') || "حفل خاص";
 
-            if (!qrDataParam) return;
+            if (!qrDataParam) {
+                alert("بيانات التذكرة ناقصة");
+                return;
+            }
 
-            // التحقق إذا كان الجهاز آيفون لإظهار الزر
+            // إظهار الزر فقط في الآيفون
             const isIPhone = /iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             if (isIPhone) {
                 document.getElementById('appleWalletContainer').style.display = 'block';
@@ -160,12 +162,16 @@
 
                         new QRCode(document.getElementById('qrcodeDisplay'), {
                             text: data.qrData,
-                            width: 140, height: 140
+                            width: 140, height: 140,
+                            colorDark: "#000", colorLight: "#fff"
                         });
 
                         updateStatusBadge(data.ticketStatus);
+                    } else {
+                        alert("عذراً، التذكرة غير موجودة");
                     }
-                });
+                })
+                .catch(err => alert("خطأ في الاتصال بالخادم"));
         });
 
         function updateStatusBadge(status) {
@@ -175,28 +181,29 @@
 
             if (status.includes('valid') || status.includes('صالحة')) {
                 card.classList.add('st-valid');
-                badge.innerHTML = "تذكرة صالحة";
+                badge.innerHTML = '<i class="fas fa-check-circle"></i> تذكرة صالحة';
             } else if (status.includes('attended') || status.includes('مستخدمة')) {
                 card.classList.add('st-used');
-                badge.innerHTML = "تم الحضور";
+                badge.innerHTML = '<i class="fas fa-user-check"></i> تم الحضور';
             } else {
                 card.classList.add('st-invalid');
-                badge.innerHTML = "غير صالحة";
+                badge.innerHTML = '<i class="fas fa-ban"></i> غير صالحة';
             }
         }
 
         async function addToAppleWallet() {
+            const loader = document.getElementById('walletLoader');
             const btn = document.getElementById('walletBtn');
-            const originalContent = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = "جاري التجهيز...";
+            
+            loader.style.display = 'block';
+            btn.style.opacity = '0.5';
+            btn.style.pointerEvents = 'none';
 
             try {
                 const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getAppleWalletPass&qrData=${encodeURIComponent(currentQrData)}&guestName=${encodeURIComponent(currentGuestName)}`);
                 const result = await response.json();
 
-                if (result.success) {
-                    // تحويل Base64 إلى ملف وتحميله
+                if (result.success && result.fileData) {
                     const byteCharacters = atob(result.fileData);
                     const byteNumbers = new Array(byteCharacters.length);
                     for (let i = 0; i < byteCharacters.length; i++) {
@@ -208,16 +215,20 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = result.fileName;
+                    a.download = result.fileName || 'ticket.pkpass';
+                    document.body.appendChild(a);
                     a.click();
+                    document.body.removeChild(a);
                 } else {
-                    alert("فشل إنشاء التذكرة");
+                    throw new Error(result.message || "فشل تحميل البيانات");
                 }
             } catch (e) {
-                alert("حدث خطأ في الاتصال");
+                console.error(e);
+                alert("حدث خطأ أثناء إنشاء التذكرة: " + e.message);
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalContent;
+                loader.style.display = 'none';
+                btn.style.opacity = '1';
+                btn.style.pointerEvents = 'auto';
             }
         }
     </script>
