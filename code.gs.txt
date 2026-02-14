@@ -1,0 +1,390 @@
+// --- إعدادات الشيت ---
+const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId(); // استخدام الـ ID للـ Spreadsheet الحالي
+const SHEET_NAME = "Tickets"; // اسم الشيت الذي يحتوي على التذاكر
+
+// --- ترتيب الأعمدة في الشيت (العد يبدأ من 0) ---
+const TICKET_ID_COLUMN = 0;     // العمود الذي يحتوي على معرف التذكرة (سابقاً qrCodeData)
+const GUEST_NAME_COLUMN = 1;    // العمود الذي يحتوي على اسم الضيف
+const STATUS_COLUMN = 2;        // العمود الذي يحتوي على حالة التذكرة (e.g., Valid, Attended, Invalid)
+const ARRIVAL_TIME_COLUMN = 3;  // العمود الذي يحتوي على وقت الوصول
+const CREATION_DATE_COLUMN = 4; // العمود الذي يحتوي على تاريخ إنشاء التذكرة (اختياري، لكن مستخدم في الكود)
+// const EVENT_NAME_COLUMN = 5; // اختياري: إذا كنت ستضيف عمودًا لاسم الحدث لكل تذكرة
+
+// ====================================================================================
+// دالة doGet: تخدم لوحة التحكم الرئيسية وتعيد بيانات التذكرة كـ JSON لصفحة العرض العامة
+// ====================================================================================
+function doGet(e) {
+  Logger.log("doGet called with parameters: " + JSON.stringify(e.parameter));
+  try {
+    // الحالة الافتراضية: إذا لم يكن هناك action، اعرض لوحة التحكم
+    if (!e.parameter.action) {
+        Logger.log("No action parameter, serving AdminPanel (assumed to be 'index.html').");
+        // تأكد أن اسم ملف لوحة التحكم هو 'index.html' أو عدّله
+        var adminPanelTemplate = HtmlService.createTemplateFromFile('index'); 
+        return adminPanelTemplate.evaluate()
+          .setTitle('لوحة تحكم المدير - تذاكر الحفل')
+          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    }
+
+    // معالجة طلب جلب بيانات التذكرة لصفحة العرض العامة
+    if (e.parameter.action === 'getTicketData' && e.parameter.qrData) {
+      var qrDataParam = decodeURIComponent(e.parameter.qrData);
+      var eventNameFromParam = e.parameter.eventName ? decodeURIComponent(e.parameter.eventName) : "دعوة خاصة";
+
+      var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+      if (!sheet) {
+        Logger.log("Sheet not found: " + SHEET_NAME);
+        return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Sheet not found: " + SHEET_NAME, status: "error" })).setMimeType(ContentService.MimeType.JSON);
+      }
+      var data = sheet.getDataRange().getValues();
+      
+      let ticketInfo = {
+        success: false,
+        guestName: "ضيف غير معروف",
+        qrData: qrDataParam, // نرجع الـ qrData المرسل
+        ticketStatus: "غير موجودة", // الحالة الافتراضية
+        eventName: eventNameFromParam,
+        message: "لم يتم العثور على التذكرة"
+        // يمكنك إضافة generatedAt هنا إذا أردت من الشيت
+      };
+
+      for (let i = 1; i < data.length; i++) { // ابدأ من الصف الثاني (index 1) لتخطي العناوين
+        if (data[i][TICKET_ID_COLUMN] == qrDataParam) {
+          ticketInfo.success = true;
+          ticketInfo.guestName = data[i][GUEST_NAME_COLUMN] || "اسم غير محدد";
+          ticketInfo.ticketStatus = data[i][STATUS_COLUMN] || "حالة غير محددة";
+          // إذا كنت تخزن تاريخ الإنشاء وتريد إرساله
+          if (data[i][CREATION_DATE_COLUMN] && data[i][CREATION_DATE_COLUMN] instanceof Date) {
+            ticketInfo.generatedAt = data[i][CREATION_DATE_COLUMN].toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' });
+          } else if (data[i][CREATION_DATE_COLUMN]) {
+             ticketInfo.generatedAt = new Date(data[i][CREATION_DATE_COLUMN]).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' });
+          }
+
+          // اختياري: إذا كان لديك عمود لاسم الحدث في الشيت وتريد استخدامه بدلاً من المعلمة
+          // if (typeof EVENT_NAME_COLUMN !== 'undefined' && data[i].length > EVENT_NAME_COLUMN && data[i][EVENT_NAME_COLUMN]) {
+          //   ticketInfo.eventName = data[i][EVENT_NAME_COLUMN];
+          // }
+          ticketInfo.message = "تم العثور على بيانات التذكرة.";
+          Logger.log("Ticket data found for API (getTicketData): ID=" + qrDataParam + ", Name=" + ticketInfo.guestName + ", Status=" + ticketInfo.ticketStatus);
+          break; 
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify(ticketInfo)).setMimeType(ContentService.MimeType.JSON);
+    } 
+    // إذا كان هناك action ولكنه غير معروف لـ doGet
+    else if (e.parameter.action) {
+        Logger.log("Unknown action for doGet: " + e.parameter.action);
+        return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Unknown action for GET request: " + e.parameter.action, status: "error" })).setMimeType(ContentService.MimeType.JSON);
+    }
+    // الحالة الافتراضية (يجب ألا نصل إليها إذا كان الشرط الأول لعدم وجود action صحيحًا)
+    Logger.log("Default case for doGet, serving AdminPanel (index.html).");
+    var adminPanelTemplateDefault = HtmlService.createTemplateFromFile('index'); 
+    return adminPanelTemplateDefault.evaluate()
+      .setTitle('لوحة تحكم المدير - تذاكر الحفل')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+
+  } catch (error) {
+    Logger.log("Error in doGet: " + error.toString() + "\nStack: " + error.stack);
+    return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Server error in doGet: " + error.toString(), status: "error" })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ====================================================================================
+// دالة doPost: تعالج طلبات إنشاء التذاكر، التقارير، ومسح/فحص التذاكر
+// ====================================================================================
+function doPost(e) {
+  Logger.log("doPost called. Action: " + e.parameter.action + " Parameters: " + JSON.stringify(e.parameter));
+  var action = e.parameter.action;
+  var response = {};
+
+  try {
+    if (action === 'generateTicketsBatch') {
+      var guestNamesListString = e.parameter.guestNamesList;
+      if (!guestNamesListString) {
+        response = { success: false, message: "قائمة أسماء الضيوف فارغة.", status: "validation_error" };
+      } else {
+        var guestNames = guestNamesListString.split('\n').map(name => name.trim()).filter(name => name.length > 0);
+        if (guestNames.length === 0) {
+            response = { success: false, message: "لم يتم تقديم أسماء ضيوف صالحة.", status: "validation_error" };
+        } else {
+            response = generateTicketsBatch(guestNames);
+        }
+      }
+    } else if (action === 'getDetailedReport') {
+      response = getDetailedReport();
+    } 
+    // معالجة `scanTicket` (لتسجيل الدخول)
+    else if (action === 'scanTicket') {
+        var qrCodeData = e.parameter.qrCodeData;
+        if (!qrCodeData) {
+            response = { success: false, message: "بيانات QR مفقودة.", status: "missing_qr_data" };
+        } else {
+            response = processTicketScanForEntry(qrCodeData);
+        }
+    }
+    // معالجة `checkTicketStatus` (للتحقق من الصلاحية فقط)
+    else if (action === 'checkTicketStatus') {
+        var qrCodeData = e.parameter.qrCodeData;
+        if (!qrCodeData) {
+            response = { success: false, message: "بيانات QR مفقودة.", status: "missing_qr_data" };
+        } else {
+            response = checkTicketValidity(qrCodeData);
+        }
+    }
+    // إذا كنت لا تزال تحتاج `scanQrCode` القديمة لسبب ما، يمكنك تركها.
+    // وإلا، قم بإزالتها لتجنب الالتباس.
+    /*
+    else if (action === 'scanQrCode') { // دالة قديمة لمعالجة المسح
+        var qrCodeId = e.parameter.qrCodeId; // تأكد من اسم المعلمة
+        response = processScannedQrCode_OLD(qrCodeId); // استدع دالة قديمة إذا كانت موجودة
+    }
+    */
+    else {
+      response = { success: false, message: "الإجراء غير معروف أو غير مدعوم: " + action, status: "unknown_action" };
+    }
+  } catch (error) {
+    Logger.log("Error in doPost: " + error.toString() + "\nStack: " + error.stack);
+    response = { success: false, message: "حدث خطأ في الخادم أثناء معالجة الطلب: " + error.toString(), status: "server_error" };
+  }
+  
+  Logger.log("doPost response for action '" + action + "': " + JSON.stringify(response));
+  return ContentService.createTextOutput(JSON.stringify(response)).setMimeType(ContentService.MimeType.JSON);
+}
+
+// ====================================================================================
+// دالة إنشاء التذاكر
+// ====================================================================================
+function generateTicketsBatch(guestNamesArray) {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+  if (!sheet) return { success: false, message: "شيت التذاكر '" + SHEET_NAME + "' غير موجود.", status: "config_error" };
+  
+  var generatedTickets = [];
+  var count = 0;
+
+  // التحقق من وجود الأعمدة المطلوبة أو إنشائها
+  var headers = sheet.getRange(1, 1, 1, sheet.getMaxColumns()).getValues()[0];
+  var requiredHeaders = ["Ticket ID", "Guest Name", "Status", "Arrival Time", "Creation Date"];
+  var headersAdded = false;
+  requiredHeaders.forEach(reqHeader => {
+      if (!headers.map(h => h.trim()).includes(reqHeader.trim())) {
+          sheet.getRange(1, sheet.getLastColumn() + 1).setValue(reqHeader);
+          headersAdded = true;
+          Logger.log("Added missing header: " + reqHeader);
+      }
+  });
+  if (headersAdded) { // إذا تمت إضافة رؤوس، أعد قراءتها
+      headers = sheet.getRange(1, 1, 1, sheet.getMaxColumns()).getValues()[0];
+  }
+
+  for (var i = 0; i < guestNamesArray.length; i++) {
+    var guestName = guestNamesArray[i];
+    var ticketId = Utilities.getUuid(); // إنشاء UUID فريد لكل تذكرة
+
+    var newRowData = [];
+    // ملء الصف بناءً على ترتيب الأعمدة المعرفة في الثوابت
+    newRowData[TICKET_ID_COLUMN] = ticketId;
+    newRowData[GUEST_NAME_COLUMN] = guestName;
+    newRowData[STATUS_COLUMN] = "Valid"; // الحالة الافتراضية عند الإنشاء
+    newRowData[ARRIVAL_TIME_COLUMN] = ""; // وقت الوصول فارغ عند الإنشاء
+    newRowData[CREATION_DATE_COLUMN] = new Date(); // تاريخ إنشاء التذكرة
+
+    sheet.appendRow(newRowData); 
+    
+    generatedTickets.push({
+      guestName: guestName,
+      qrCodeData: ticketId, // هذا هو معرف التذكرة الذي سيستخدم في الرابط ويتم مسحه ضوئيًا
+    });
+    count++;
+  }
+  Logger.log("Generated " + count + " tickets.");
+  return { success: true, count: count, tickets: generatedTickets, message: "تم إنشاء " + count + " تذكرة بنجاح." };
+}
+
+// ====================================================================================
+// دالة جلب تقرير الحضور المفصل
+// ====================================================================================
+function getDetailedReport() {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+  if (!sheet) return { success: false, message: "شيت التذاكر '" + SHEET_NAME + "' غير موجود.", status: "config_error" };
+
+  var data = sheet.getDataRange().getValues();
+  var totalInvited = 0;
+  var attendedCount = 0;
+  var attendedGuests = [];
+  var notAttendedGuests = [];
+
+  // ابدأ من i = 1 لتخطي صف الرؤوس
+  for (var i = 1; i < data.length; i++) {
+    // تخطي الصفوف الفارغة تمامًا (التي لا تحتوي على معرف تذكرة أو اسم ضيف)
+    if (!data[i][TICKET_ID_COLUMN] && !data[i][GUEST_NAME_COLUMN]) continue; 
+
+    totalInvited++;
+    var guestName = data[i][GUEST_NAME_COLUMN] || "اسم غير متوفر";
+    var status = data[i][STATUS_COLUMN] || "Valid"; // افترض أنها صالحة إذا كانت الحالة فارغة
+    var qrCode = data[i][TICKET_ID_COLUMN] || "معرف غير متوفر";
+    var arrivalTimeRaw = data[i][ARRIVAL_TIME_COLUMN];
+    var arrivalTimeFormatted = "-";
+
+    if (arrivalTimeRaw && arrivalTimeRaw instanceof Date) {
+        arrivalTimeFormatted = arrivalTimeRaw.toLocaleString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } else if (arrivalTimeRaw && typeof arrivalTimeRaw === 'string' && arrivalTimeRaw.trim() !== "") { 
+        try {
+             arrivalTimeFormatted = new Date(arrivalTimeRaw).toLocaleString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        } catch(e){ Logger.log("Error parsing arrival date string: " + arrivalTimeRaw + " for guest " + guestName); }
+    }
+
+
+    if (status.toLowerCase() === "attended" || status.toLowerCase() === "مستخدمة" || status.toLowerCase() === "تم الحضور") {
+      attendedCount++;
+      attendedGuests.push({ name: guestName, arrivalTime: arrivalTimeFormatted, qrCode: qrCode });
+    } else {
+      notAttendedGuests.push({ name: guestName, status: status, qrCode: qrCode });
+    }
+  }
+  
+  Logger.log("Detailed report: TotalInvited=" + totalInvited + ", AttendedCount=" + attendedCount);
+  return {
+    success: true,
+    totalInvited: totalInvited,
+    attendedCount: attendedCount,
+    notAttendedCount: totalInvited - attendedCount,
+    attendedGuests: attendedGuests,
+    notAttendedGuests: notAttendedGuests
+  };
+}
+
+// ====================================================================================
+// دالة معالجة مسح التذكرة لغرض تسجيل الدخول (action: scanTicket)
+// ====================================================================================
+function processTicketScanForEntry(qrCodeData) {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+  if (!sheet) return { success: false, message: "شيت التذاكر غير موجود.", status: "sheet_not_found"};
+  
+  var data = sheet.getDataRange().getValues();
+  var rowIndex = -1; // فهرس الصف في مصفوفة البيانات (يبدأ من 0 للبيانات)
+  var guestName = "";
+  var currentStatus = "";
+  var creationDateRaw = null; // لتاريخ الإنشاء
+
+  for (var i = 1; i < data.length; i++) { // ابدأ من 1 لتخطي الرؤوس
+    if (data[i][TICKET_ID_COLUMN] == qrCodeData) {
+      rowIndex = i;
+      guestName = data[i][GUEST_NAME_COLUMN];
+      currentStatus = data[i][STATUS_COLUMN];
+      creationDateRaw = data[i][CREATION_DATE_COLUMN];
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    Logger.log("scanTicket: Ticket not found for QR Data: " + qrCodeData);
+    return { success: false, message: "التذكرة غير صالحة أو غير موجودة.", guestName: "غير معروف", status: "not_found" };
+  }
+
+  var sheetRowIndex = rowIndex + 1; // رقم الصف الفعلي في الشيت (يبدأ من 1)
+
+  if (currentStatus && (currentStatus.toLowerCase() === "attended" || currentStatus.toLowerCase() === "مستخدمة" || currentStatus.toLowerCase() === "تم الحضور")) {
+    var arrivalTimeRaw = data[rowIndex][ARRIVAL_TIME_COLUMN];
+    var arrivalTimeFormatted = arrivalTimeRaw && arrivalTimeRaw instanceof Date ? arrivalTimeRaw.toLocaleString('ar-SA', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : "وقت غير محدد";
+    Logger.log("scanTicket: Ticket already used. QR: " + qrCodeData + ", Guest: " + guestName);
+    // في سياق scanTicket، إذا كانت مستخدمة بالفعل، يعتبر فشل في تسجيل الدخول مرة أخرى
+    return { 
+        success: false, // فشل تسجيل الدخول
+        message: "فشل تسجيل الدخول: التذكرة مستخدمة بالفعل!", 
+        guestName: guestName, 
+        status: "already_used", 
+        scannedAt: arrivalTimeFormatted 
+    };
+  }
+  
+  // إذا كانت صالحة (Valid) أو أي حالة أخرى غير Attended، قم بتحديث الحالة ووقت الوصول
+  var now = new Date();
+  sheet.getRange(sheetRowIndex, STATUS_COLUMN + 1).setValue("Attended");
+  sheet.getRange(sheetRowIndex, ARRIVAL_TIME_COLUMN + 1).setValue(now);
+  
+  Logger.log("scanTicket: Attendance recorded. QR: " + qrCodeData + ", Guest: " + guestName);
+  return { 
+    success: true, 
+    message: "تم تسجيل الدخول بنجاح!", 
+    guestName: guestName, 
+    status: "valid_and_used", // حالة جديدة لتمييز التسجيل الناجح
+    scannedAt: now.toLocaleString('ar-SA', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })
+  };
+}
+
+// ====================================================================================
+// دالة التحقق من صلاحية التذكرة فقط (action: checkTicketStatus)
+// ====================================================================================
+function checkTicketValidity(qrCodeData) {
+  var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+  if (!sheet) return { success: false, message: "شيت التذاكر غير موجود.", status: "sheet_not_found"};
+  
+  var data = sheet.getDataRange().getValues();
+  var guestName = "";
+  var currentStatus = "";
+  var arrivalTimeRaw = null;
+  var creationDateRaw = null;
+  var ticketFound = false;
+  var rowIndex = -1;
+
+
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][TICKET_ID_COLUMN] == qrCodeData) {
+      rowIndex = i;
+      guestName = data[i][GUEST_NAME_COLUMN];
+      currentStatus = data[i][STATUS_COLUMN];
+      arrivalTimeRaw = data[i][ARRIVAL_TIME_COLUMN];
+      creationDateRaw = data[i][CREATION_DATE_COLUMN];
+      ticketFound = true;
+      break;
+    }
+  }
+
+  if (!ticketFound) {
+    Logger.log("checkTicketStatus: Ticket not found for QR Data: " + qrCodeData);
+    return { success: false, message: "التذكرة غير موجودة أو غير صالحة.", guestName: "غير معروف", status: "not_found" };
+  }
+
+  var arrivalTimeFormatted = arrivalTimeRaw && arrivalTimeRaw instanceof Date 
+      ? arrivalTimeRaw.toLocaleString('ar-SA', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) 
+      : (arrivalTimeRaw ? new Date(arrivalTimeRaw).toLocaleString('ar-SA', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : null);
+      
+  var creationDateFormatted = creationDateRaw && creationDateRaw instanceof Date 
+      ? creationDateRaw.toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' }) 
+      : (creationDateRaw ? new Date(creationDateRaw).toLocaleDateString('ar-SA', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A');
+
+
+  if (currentStatus && (currentStatus.toLowerCase() === "attended" || currentStatus.toLowerCase() === "مستخدمة" || currentStatus.toLowerCase() === "تم الحضور")) {
+    Logger.log("checkTicketStatus: Ticket already used. QR: " + qrCodeData + ", Guest: " + guestName);
+    return { 
+        success: true, // نجح الفحص، وهذه هي حالتها
+        message: "التذكرة مستخدمة بالفعل.", 
+        guestName: guestName, 
+        status: "already_used", 
+        scannedAt: arrivalTimeFormatted,
+        generatedAt: creationDateFormatted
+    };
+  } else if (currentStatus && (currentStatus.toLowerCase() === "valid" || currentStatus.toLowerCase() === "صالحة")) {
+    Logger.log("checkTicketStatus: Ticket is valid and not used. QR: " + qrCodeData + ", Guest: " + guestName);
+    return { 
+        success: true, 
+        message: "التذكرة صالحة ولم تستخدم بعد.", 
+        guestName: guestName, 
+        status: "valid_not_used", 
+        generatedAt: creationDateFormatted
+    };
+  } else {
+    // حالات أخرى (مثل Invalid، أو قيمة غير متوقعة في عمود الحالة)
+    var statusToReport = currentStatus ? currentStatus.toLowerCase() : "فارغة";
+    if (statusToReport === "invalid") statusToReport = "invalid_explicit"; // لتمييزها
+    
+    Logger.log("checkTicketStatus: Ticket status is '" + currentStatus + "'. QR: " + qrCodeData + ", Guest: " + guestName);
+    return { 
+        success: false, // يعتبر فشل إذا كانت الحالة غير صالحة أو غير معروفة بشكل صريح
+        message: "حالة التذكرة: " + (currentStatus || "غير محددة"), 
+        guestName: guestName, 
+        status: statusToReport, // يمكن أن تكون "invalid_explicit" أو قيمة أخرى
+        generatedAt: creationDateFormatted
+    };
+  }
+}
