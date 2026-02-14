@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تذكرة الرقمية</title>
+    <title>تذكرة</title>
     
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,45 +39,30 @@
             color: var(--text-main);
         }
 
-        .ticket-container { position: relative; width: 100%; max-width: 360px; display: none; }
+        .ticket-container { position: relative; width: 100%; max-width: 360px; display: none; animation: popIn 0.6s ease-out; }
         .ticket-container.visible { display: block; }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 
-        .ticket-card {
-            background: var(--card-bg);
-            border-radius: 30px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-        }
-
+        .ticket-card { background: var(--card-bg); border-radius: 30px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); }
         .ticket-header { padding: 40px 20px 20px; text-align: center; }
-        .event-title { font-family: 'Cairo', sans-serif; font-weight: 900; font-size: 1.8rem; color: white; margin-bottom: 5px; }
-        .guest-name { font-family: 'Cairo', sans-serif; font-size: 2rem; font-weight: 700; color: white; margin-bottom: 10px; }
-        
-        .ticket-footer { background: rgba(0, 0, 0, 0.2); padding: 30px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; }
-        .qr-frame { background: white; padding: 10px; border-radius: 15px; margin-bottom: 15px; }
-        
-        /* تنسيق زر آيفون الجديد بالصورة المطلوبة */
-        #appleWalletContainer { display: none; margin-top: 15px; width: 100%; }
-        .apple-wallet-button {
-            background: none;
-            border: none;
-            padding: 0;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-            display: inline-block;
-        }
-        .apple-wallet-button:active { transform: scale(0.95); }
-        .apple-wallet-button img {
-            width: 180px; /* حجم الزر */
-            height: auto;
-            display: block;
-        }
+        .logo-icon { font-size: 2rem; color: var(--gold); margin-bottom: 10px; }
+        .event-title { font-family: 'Cairo', sans-serif; font-weight: 900; font-size: 1.8rem; color: white; }
+        .ticket-body { padding: 20px; text-align: center; }
+        .guest-name { font-family: 'Cairo', sans-serif; font-size: 2rem; font-weight: 700; color: white; margin-bottom: 15px; }
 
-        .status-indicator { padding: 8px 24px; border-radius: 50px; font-weight: bold; border: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 5px; }
+        .ticket-footer { background: rgba(0, 0, 0, 0.2); padding: 30px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; }
+        .qr-frame { background: white; padding: 12px; border-radius: 18px; margin-bottom: 15px; }
+
+        .status-indicator { padding: 8px 24px; border-radius: 50px; font-weight: bold; border: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 15px; }
         .st-valid .status-indicator { color: var(--st-valid); border-color: var(--st-valid); }
         .st-used .status-indicator { color: var(--st-used); border-color: var(--st-used); }
         .st-invalid .status-indicator { color: var(--st-invalid); border-color: var(--st-invalid); }
+
+        /* تنسيق زر آيفون */
+        #appleWalletContainer { display: none; margin-top: 10px; }
+        .apple-wallet-button { background: none; border: none; cursor: pointer; transition: transform 0.2s; }
+        .apple-wallet-button:active { transform: scale(0.95); }
+        .apple-wallet-button img { width: 180px; height: auto; }
 
         #loadingIndicator { text-align: center; }
         .loader { width: 40px; height: 40px; border: 3px solid #fff; border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
@@ -88,147 +73,116 @@
 
     <div id="loadingIndicator">
         <span class="loader"></span>
-        <p style="color: var(--text-muted); margin-top: 10px;">جاري تجهيز التذكرة...</p>
+        <p style="color: var(--text-muted); margin-top: 15px;">جاري تحميل التذكرة...</p>
     </div>
 
     <div class="ticket-container" id="ticketContainer">
         <div class="ticket-card" id="ticketCard">
             <div class="ticket-header">
-                <i class="fas fa-crown" style="color: var(--gold); font-size: 2rem;"></i>
+                <i class="fas fa-crown logo-icon"></i>
                 <div class="event-title" id="eventTitle">...</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted);">يرجى إبراز الدعوة عند الدخول</div>
             </div>
 
-            <div style="padding: 20px; text-align: center;">
-                <span style="color: var(--accent); font-weight: bold; font-size: 0.8rem;">حامل الدعوة</span>
+            <div class="ticket-body">
+                <span style="color: var(--accent); font-size: 0.8rem; font-weight: bold;">حامل الدعوة</span>
                 <div class="guest-name" id="guestName">...</div>
             </div>
 
             <div class="ticket-footer">
-                <div class="qr-frame">
-                    <div id="qrcodeDisplay"></div>
-                </div>
-                <div id="ticketIdText" style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 15px;">ID: ...</div>
-                
+                <div class="qr-frame"><div id="qrcodeDisplay"></div></div>
+                <div id="ticketIdText" style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 15px;">ID: ...</div>
                 <div class="status-indicator" id="statusBadge">جاري التحقق...</div>
 
-                <!-- زر محفظة أبل باستخدام الصورة المطلوبة -->
                 <div id="appleWalletContainer">
                     <button onclick="addToAppleWallet()" class="apple-wallet-button" id="walletBtn">
                         <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhoXzwbsszXm6o4CnAGon7WqRGEQUpuhM057aAAyU6QZE77KlI6JLfNh2nPG4Bhkbjvj08GstICO0IUNJJuFBg-Xn1JnrMZbBF8DGeudBSv7q9D8YXhgB8outcHSMleh2h8DolK6M9CB70SdFsZm2xW29akyhQDkc2c7TigkDMudtz1dC2GBtBjiIRHJKbN/s3840/Add_to_Apple_Wallet_badge.svg.png" alt="Add to Apple Wallet">
                     </button>
-                    <p id="walletLoader" style="display:none; font-size: 12px; color: var(--accent); margin-top: 5px;">جاري التحميل...</p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        // هام: استبدل الرابط أدناه برابط السكربت (Web App URL) الخاص بك بعد النشر
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwnDB6BY1j_Zg-0cIoT3tAGSuejFyI9x6L1XbV0XvIx4BtI7x5LLTQTBwRgHAfypg6z/exec'; 
+        // رابط السكربت الخاص بك لجلب بيانات التذكرة فقط
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzNf9xpB99tioPUwYnjRlmF_3VECNCHfzPnRYbvPpoM8srwxdzlx7Xbezz3VxQ-0onX/exec';
 
-        let currentGuestName = "";
-        let currentQrData = "";
+        let currentTicket = null;
 
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
-            const qrDataParam = urlParams.get('qrData');
-            const eventNameParam = urlParams.get('eventName') || "حفل خاص";
+            const qrData = urlParams.get('qrData');
+            
+            if (!qrData) return;
 
-            if (!qrDataParam) {
-                alert("بيانات التذكرة ناقصة");
-                return;
-            }
-
-            // إظهار الزر فقط في الآيفون
+            // إظهار الزر في الآيفون فقط
             const isIPhone = /iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            if (isIPhone) {
-                document.getElementById('appleWalletContainer').style.display = 'block';
-            }
+            if (isIPhone) document.getElementById('appleWalletContainer').style.display = 'block';
 
-            fetch(`${GOOGLE_SCRIPT_URL}?action=getTicketData&qrData=${encodeURIComponent(qrDataParam)}&eventName=${encodeURIComponent(eventNameParam)}`)
+            fetch(`${GOOGLE_SCRIPT_URL}?action=getTicketData&qrData=${encodeURIComponent(qrData)}`)
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById('loadingIndicator').style.display = 'none';
-                    document.getElementById('ticketContainer').classList.add('visible');
-
                     if (data.success) {
-                        currentGuestName = data.guestName;
-                        currentQrData = data.qrData;
-                        
+                        currentTicket = data;
+                        document.getElementById('ticketContainer').classList.add('visible');
                         document.getElementById('eventTitle').innerText = data.eventName;
                         document.getElementById('guestName').innerText = data.guestName;
                         document.getElementById('ticketIdText').innerText = "ID: " + data.qrData;
-
-                        new QRCode(document.getElementById('qrcodeDisplay'), {
-                            text: data.qrData,
-                            width: 140, height: 140,
-                            colorDark: "#000", colorLight: "#fff"
-                        });
-
-                        updateStatusBadge(data.ticketStatus);
-                    } else {
-                        alert("عذراً، التذكرة غير موجودة");
+                        new QRCode(document.getElementById('qrcodeDisplay'), { text: data.qrData, width: 140, height: 140 });
+                        updateUI(data.ticketStatus);
                     }
-                })
-                .catch(err => alert("خطأ في الاتصال بالخادم"));
+                });
         });
 
-        function updateStatusBadge(status) {
+        function updateUI(status) {
             const badge = document.getElementById('statusBadge');
             const card = document.getElementById('ticketCard');
-            status = (status || '').toLowerCase();
-
+            status = status.toLowerCase();
             if (status.includes('valid') || status.includes('صالحة')) {
-                card.classList.add('st-valid');
-                badge.innerHTML = '<i class="fas fa-check-circle"></i> تذكرة صالحة';
-            } else if (status.includes('attended') || status.includes('مستخدمة')) {
-                card.classList.add('st-used');
-                badge.innerHTML = '<i class="fas fa-user-check"></i> تم الحضور';
+                card.classList.add('st-valid'); badge.innerText = "تذكرة صالحة";
+            } else if (status.includes('attended')) {
+                card.classList.add('st-used'); badge.innerText = "تم الحضور";
             } else {
-                card.classList.add('st-invalid');
-                badge.innerHTML = '<i class="fas fa-ban"></i> غير صالحة';
+                card.classList.add('st-invalid'); badge.innerText = "غير صالحة";
             }
         }
 
+        // كود الـ API الخاص بـ WalletWallet مباشرة في الصفحة
         async function addToAppleWallet() {
-            const loader = document.getElementById('walletLoader');
+            if (!currentTicket) return;
             const btn = document.getElementById('walletBtn');
-            
-            loader.style.display = 'block';
-            btn.style.opacity = '0.5';
-            btn.style.pointerEvents = 'none';
+            btn.style.opacity = "0.5";
 
             try {
-                const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getAppleWalletPass&qrData=${encodeURIComponent(currentQrData)}&guestName=${encodeURIComponent(currentGuestName)}`);
-                const result = await response.json();
+                const response = await fetch('https://api.walletwallet.dev/api/pkpass', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ww_live_d725637056c71ad72de934242e861523'
+                    },
+                    body: JSON.stringify({
+                        barcodeValue: currentTicket.qrData,
+                        barcodeFormat: "QR",
+                        title: currentTicket.guestName,
+                        colorPreset: "dark"
+                    })
+                });
 
-                if (result.success && result.fileData) {
-                    const byteCharacters = atob(result.fileData);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) {
-                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], {type: 'application/vnd.apple.pkpass'});
-                    
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = result.fileName || 'ticket.pkpass';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                } else {
-                    throw new Error(result.message || "فشل تحميل البيانات");
-                }
+                if (!response.ok) throw new Error('API Error');
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ticket.pkpass';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
             } catch (e) {
+                alert("حدث خطأ أو قيود أمان (CORS) من المتصفح");
                 console.error(e);
-                alert("حدث خطأ أثناء إنشاء التذكرة: " + e.message);
             } finally {
-                loader.style.display = 'none';
-                btn.style.opacity = '1';
-                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = "1";
             }
         }
     </script>
