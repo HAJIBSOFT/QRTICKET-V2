@@ -1,0 +1,22 @@
+{
+  "short_name": "HAJIB Scan",
+  "name": "HAJIB Scanner - نظام مسح التذاكر",
+  "icons": [
+    {
+      "src": "https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/icon.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/icon.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "display": "standalone",
+  "orientation": "portrait"
+}

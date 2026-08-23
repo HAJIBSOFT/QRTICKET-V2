@@ -53,7 +53,7 @@
         .chart-box { background: var(--bg-panel); padding: 20px; border-radius: 16px; border: 1px solid var(--border); width: 100%; max-width: 500px; min-height: 320px; }
         .chart-box h3 { margin-bottom: 20px; font-size: 1rem; text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
 
-        .report-panel { background: var(--bg-panel); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+        .report-panel { background: var(--bg-panel); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 25px; }
         .panel-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; }
         @media (min-width: 768px) { .panel-header { flex-direction: row; justify-content: space-between; } }
 
@@ -121,6 +121,21 @@
             </div>
         </div>
 
+        <!-- لوحة بث إشعارات المحفظة الفورية الجديدة -->
+        <div class="report-panel" style="border: 1px solid var(--secondary); background: rgba(168, 85, 247, 0.04); padding: 25px;">
+            <h3 style="color: var(--secondary); margin-bottom: 8px;"><i class="fas fa-bell"></i> بث إشعار فوري لمحافظ الضيوف</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px; line-height: 1.6;">
+                يمكنك كتابة رسالة هنا وإرسالها؛ لتصل على شاشات قفل هواتف الضيوف (Apple & Google Wallet) الذين قاموا بإضافة التذكرة لمحافظهم بشكل فوري.
+            </p>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <input type="text" id="notificationText" class="filter-btn" style="flex: 1; min-width: 250px; padding: 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 10px; color: white; text-align: right;" placeholder="مثال: بدأ العشاء الآن، تفضلوا بقبول تحياتنا...">
+                <button class="btn-action" style="background: var(--secondary); max-width: 200px; min-width: 150px;" onclick="sendWalletNotifications()">
+                    <i class="fas fa-paper-plane"></i> إرسال الإشعار
+                </button>
+            </div>
+            <div id="notif-status" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-muted); font-weight: bold;"></div>
+        </div>
+
         <div class="report-panel">
             <div class="panel-header">
                 <h3>السجل التفصيلي</h3>
@@ -150,7 +165,6 @@
     </div>
 
     <script>
-        // إعداد وتوصيل مكتبة Supabase بالتعديل الجديد
         const SUPABASE_URL = 'https://bigisnpdoqxmpjwpbncv.supabase.co'; 
         const SUPABASE_ANON_KEY = 'sb_publishable_6ZtAL8lRYdreWg4Xhn6zLA_7-PwGvPJ'; 
         const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -168,7 +182,6 @@
             }
 
             try {
-                // سحب اسم الفعالية باستخدام supa
                 const { data: eventData } = await supa
                     .from('events')
                     .select('title')
@@ -179,7 +192,6 @@
                 document.getElementById('reportHeaderTitle').innerHTML = `<i class="fas fa-chart-pie"></i> تقرير: ${eventTitle}`;
                 document.getElementById('printReportTitle').innerText = `تقرير حضور: ${eventTitle}`;
 
-                // سحب التذاكر باستخدام supa
                 const { data: tickets, error } = await supa
                     .from('tickets')
                     .select('*')
@@ -265,6 +277,70 @@
                     <td>${g.arrivalTime}</td>
                 </tr>
             `).join('');
+        }
+
+        // دالة إرسال الإشعارات عبر API الـ PUT الخاص بمحفظة WalletWallet لجميع الضيوف
+        async function sendWalletNotifications() {
+            const text = document.getElementById('notificationText').value.trim();
+            if (!text) return alert("الرجاء كتابة نص الإشعار للبث");
+            
+            const statusDiv = document.getElementById('notif-status');
+            statusDiv.style.color = "var(--text-muted)";
+            statusDiv.innerText = "جاري جلب قائمة أجهزة الضيوف النشطة من السجلات...";
+
+            try {
+                // سحب التذاكر التي تحتوي على رقم سيريال مسجل
+                const { data: tickets, error } = await supa
+                    .from('tickets')
+                    .select('serial_number, guest_name')
+                    .eq('event_slug', eventSlug)
+                    .not('serial_number', 'is', null);
+
+                if (error) throw error;
+
+                if (!tickets || tickets.length === 0) {
+                    statusDiv.innerHTML = `<span style="color:var(--danger)">لم يقم أي ضيف بإضافة تذكرته للمحفظة الرقمية بعد، لا توجد أجهزة نشطة للبث.</span>`;
+                    return;
+                }
+
+                statusDiv.innerText = `جاري بث الإشعار إلى ${tickets.length} هاتف نشط...`;
+                let successCount = 0;
+
+                // تحديث حقل الـ Notifications وبث الإشعار الفوري
+                for (const t of tickets) {
+                    try {
+                        const response = await fetch(`https://api.walletwallet.dev/api/passes/${t.serial_number}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ww_live_d725637056c71ad72de934242e861523'
+                            },
+                            body: JSON.stringify({
+                                backFields: [
+                                    {
+                                        label: "جميع الحقوق محفوظة ",
+                                        value: "HAJIB SOFT TEAM "
+                                    },
+                                    {
+                                        label: "Notifications",
+                                        value: text,
+                                        changeMessage: "%@"
+                                    }
+                                ]
+                            })
+                        });
+                        if (response.ok) successCount++;
+                    } catch (err) {
+                        console.error("Error pushing notification to serial " + t.serial_number, err);
+                    }
+                }
+
+                statusDiv.innerHTML = `<span style="color:var(--success)">تم بث الإشعار الفوري بنجاح ووصل لـ ${successCount} هاتف نشط!</span>`;
+                document.getElementById('notificationText').value = '';
+
+            } catch (err) {
+                statusDiv.innerHTML = `<span style="color:var(--danger)">حدث خطأ تقني: ${err.message}</span>`;
+            }
         }
 
         window.onload = loadData;

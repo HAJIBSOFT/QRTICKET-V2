@@ -45,7 +45,6 @@
             color: var(--text-dark);
         }
 
-        /* حاوية التذكرة مع تأثيرات بهجة وانبثاق */
         .ticket-container { 
             position: relative; 
             width: 100%; 
@@ -60,7 +59,6 @@
             to { opacity: 1; transform: scale(1) translateY(0); } 
         }
 
-        /* تصميم الكارت الفاخر بخلفية بيضاء نقية وتفاصيل ذهبية */
         .ticket-card { 
             background: var(--card-white); 
             border-radius: 35px; 
@@ -70,7 +68,6 @@
             border: 1px solid rgba(184, 144, 71, 0.15);
         }
 
-        /* لمسة احتفالية ذهبية في أعلى البطاقة */
         .ticket-card::before {
             content: '';
             position: absolute;
@@ -80,7 +77,6 @@
 
         .ticket-header { padding: 45px 20px 20px; text-align: center; }
         
-        /* أيقونة ذهبية احتفالية */
         .logo-icon { 
             font-size: 2.2rem; 
             background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-primary) 100%);
@@ -100,7 +96,6 @@
 
         .ticket-body { padding: 15px 25px; text-align: center; }
         
-        /* وسم الترحيب */
         .welcome-badge {
             background: rgba(184, 144, 71, 0.08);
             color: var(--gold-primary);
@@ -122,7 +117,6 @@
             text-shadow: 1px 1px 1px rgba(0,0,0,0.02);
         }
 
-        /* مربع تفاصيل الموقع والتاريخ الفني الجديد */
         .event-details-box {
             background: #fdfbf7;
             border: 1px solid rgba(184, 144, 71, 0.12);
@@ -165,7 +159,6 @@
             border-top: 1px dashed rgba(184, 144, 71, 0.15);
         }
 
-        /* إطار الباركود المنقش بجماليات كلاسيكية */
         .qr-frame { 
             background: white; 
             padding: 14px; 
@@ -188,7 +181,6 @@
         .st-used .status-indicator { color: var(--st-used); border-color: var(--st-used); background: rgba(245, 158, 11, 0.06); }
         .st-invalid .status-indicator { color: var(--st-invalid); border-color: var(--st-invalid); background: rgba(239, 68, 68, 0.06); }
 
-        /* منطقة أزرار المحفظة الذكية */
         .wallet-buttons-container { 
             display: none; 
             width: 100%;
@@ -236,7 +228,6 @@
                 <span class="welcome-badge">بطاقة دعوة خاصة</span>
                 <div class="guest-name" id="guestName">...</div>
                 
-                <!-- تفاصيل الحفل الفنية (التاريخ والموقع) -->
                 <div class="event-details-box">
                     <div class="detail-item">
                         <i class="fas fa-calendar-alt"></i>
@@ -256,7 +247,6 @@
                 <div id="ticketIdText" style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 15px; font-family: monospace;">ID: ...</div>
                 <div class="status-indicator" id="statusBadge">جاري التحقق...</div>
 
-                <!-- أزرار المحفظة لأجهزة ابل واندرويد بتناسق فني كامل -->
                 <div class="wallet-buttons-container" id="walletButtonsContainer">
                     <button onclick="addToAppleWallet()" class="apple-wallet-button" id="appleWalletBtn" title="إضافة إلى Apple Wallet">
                         <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhoXzwbsszXm6o4CnAGon7WqRGEQUpuhM057aAAyU6QZE77KlI6JLfNh2nPG4Bhkbjvj08GstICO0IUNJJuFBg-Xn1JnrMZbBF8DGeudBSv7q9D8YXhgB8outcHSMleh2h8DolK6M9CB70SdFsZm2xW29akyhQDkc2c7TigkDMudtz1dC2GBtBjiIRHJKbN/s3840/Add_to_Apple_Wallet_badge.svg.png" alt="Add to Apple Wallet">
@@ -270,12 +260,12 @@
     </div>
 
     <script>
-        // إعداد وتوصيل مكتبة Supabase
         const SUPABASE_URL = 'https://bigisnpdoqxmpjwpbncv.supabase.co'; 
         const SUPABASE_ANON_KEY = 'sb_publishable_6ZtAL8lRYdreWg4Xhn6zLA_7-PwGvPJ'; 
         const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentTicket = null;
+        let passCache = null; // ذاكرة تخزين مؤقتة لتجنب تكرار الاتصال بالمخدم
 
         document.addEventListener('DOMContentLoaded', async function() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -287,14 +277,12 @@
                 return;
             }
 
-            // إظهار المحافظ للأجهزة المحمولة
             const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             if (isMobile) {
                 document.getElementById('walletButtonsContainer').style.display = 'flex';
             }
 
             try {
-                // سحب التذكرة
                 const { data: ticket, error: tError } = await supa
                     .from('tickets')
                     .select('*')
@@ -306,7 +294,6 @@
                     throw new Error("تذكرة غير صالحة");
                 }
 
-                // سحب بيانات الفعالية
                 const { data: eventData } = await supa
                     .from('events')
                     .select('title, event_date, location')
@@ -323,7 +310,6 @@
                 document.getElementById('guestName').innerText = ticket.guest_name;
                 document.getElementById('ticketIdText').innerText = "ID: " + ticket.id;
                 
-                // عرض التاريخ والموقع اللذين تمت إضافتهما
                 document.getElementById('eventDate').innerText = (eventData && eventData.event_date) ? eventData.event_date : 'يحدد لاحقاً';
                 document.getElementById('eventLocation').innerText = (eventData && eventData.location) ? eventData.location : 'يحدد لاحقاً';
                 
@@ -348,30 +334,93 @@
             }
         }
 
-        // إضافة إلى محفظة أبل (Apple Wallet)
+        // دالة موحدة لطلب إصدار التذكرة وحفظها في قاعدة البيانات وتوليد السيريال
+        async function getOrCreatePass() {
+            if (passCache) return passCache;
+
+            const response = await fetch('https://api.walletwallet.dev/api/passes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ww_live_d725637056c71ad72de934242e861523'
+                },
+                body: JSON.stringify({
+                    "barcodeValue": currentTicket.id,
+                    "barcodeFormat": "QR",
+                    "logoText": currentTicket.eventName,
+                    "organizationName": "HAJIB SOFT ",
+                    "colorPreset": "dark",
+                    "color": "#ffffff",
+                    "logoURL": "https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/icon.png",
+                    "iconURL": "https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/icon.png",
+                    "stripURL": "https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/strip%20(1).png",
+                    "secondaryFields": [
+                        {
+                            "label": "اسم صاحب الدعوة:",
+                            "value": currentTicket.guest_name
+                        },
+                        {
+                            "label": "الموقع :",
+                            "value": document.getElementById('eventLocation').innerText
+                        },
+                        {
+                            "label": "التاريخ:",
+                            "value": document.getElementById('eventDate').innerText
+                        }
+                    ],
+                    "headerFields": [
+                        {
+                            "value": "الرجاء ابراز بطاقة الدعوة عند الدخول"
+                        }
+                    ],
+                    "backFields": [
+                        {
+                            "label": "جميع الحقوق محفوظة ",
+                            "value": "HAJIB SOFT TEAM "
+                        },
+                        {
+                            "label": "Notifications",
+                            "value": " ",
+                            "changeMessage": "%@"
+                        }
+                    ]
+                })
+            });
+
+            if (!response.ok) throw new Error('فشل توليد البطاقة الرقمية');
+
+            const result = await response.json();
+            
+            // ربط سيريال المحفظة بالتذكرة في Supabase لبث الإشعارات لاحقاً
+            if (result.serialNumber) {
+                await supa
+                    .from('tickets')
+                    .update({ serial_number: result.serialNumber })
+                    .eq('id', currentTicket.id);
+            }
+
+            passCache = result;
+            return result;
+        }
+
+        // إضافة إلى محفظة أبل
         async function addToAppleWallet() {
             if (!currentTicket) return;
             const btn = document.getElementById('appleWalletBtn');
             btn.style.opacity = "0.5";
 
             try {
-                const response = await fetch('https://api.walletwallet.dev/api/pkpass', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ww_live_d725637056c71ad72de934242e861523'
-                    },
-                    body: JSON.stringify({
-                        barcodeValue: currentTicket.id,
-                        barcodeFormat: "QR",
-                        title: currentTicket.guest_name,
-                        colorPreset: "dark"
-                    })
-                });
-
-                if (!response.ok) throw new Error('Wallet API Error');
-
-                const blob = await response.blob();
+                const passData = await getOrCreatePass();
+                
+                // فك ترميز Base64 الصادر من API WalletWallet لإنشاء ملف ثنائي .pkpass
+                const byteCharacters = atob(passData.applePass);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], {type: "application/vnd.apple.pkpass"});
+                
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -387,38 +436,19 @@
             }
         }
 
-        // إضافة إلى محفظة جوجل (Google Wallet)
+        // إضافة إلى محفظة جوجل
         async function addToGoogleWallet() {
             if (!currentTicket) return;
             const btn = document.getElementById('googleWalletBtn');
             btn.style.opacity = "0.5";
 
             try {
-                // استخدام نفس مزود محاكاة المحفظة لإنشاء الرابط وحفظه للهاتف
-                const response = await fetch('https://api.walletwallet.dev/api/pkpass', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ww_live_d725637056c71ad72de934242e861523'
-                    },
-                    body: JSON.stringify({
-                        barcodeValue: currentTicket.id,
-                        barcodeFormat: "QR",
-                        title: currentTicket.guest_name,
-                        colorPreset: "dark"
-                    })
-                });
-
-                if (!response.ok) throw new Error('Wallet API Error');
-
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `google-pass.pkpass`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
+                const passData = await getOrCreatePass();
+                if (passData.googleSaveUrl) {
+                    window.open(passData.googleSaveUrl, '_blank');
+                } else {
+                    throw new Error("رابط حفظ Google غير متوفر");
+                }
             } catch (e) {
                 alert("حدثت مشكلة اتصال بمخدم حفظ المحفظة، الرجاء الاحتفاظ بلقطة الشاشة لرمز الـ QR لتسجيل حضورك.");
                 console.error(e);

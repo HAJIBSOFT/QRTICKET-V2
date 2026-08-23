@@ -6,6 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HAJIB SCANNER | الماسح الضوئي</title>
 
+    <!-- إعدادات تطبيق الويب التقدمي (PWA) ومتوافقة مع نظام iOS -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="HAJIB SCAN">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/5164/5164023.png">
+
     <!-- مكتبة Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- مكتبة QR -->
@@ -660,16 +667,23 @@
             if (val) processScannedCode(val);
         });
 
+        // تسجيل الـ Service Worker لتطبيق الويب التقدمي (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('PWA Service Worker تم تسجيله بنجاح!', reg))
+                    .catch(err => console.warn('فشل تسجيل PWA Service Worker:', err));
+            });
+        }
+
         // تشغيل فحص أولي عند تحميل الصفحة
         window.addEventListener('DOMContentLoaded', async () => {
             if (!eventSlug) {
-                // إخفاء عناصر المسح الأساسية لمنع حدوث أخطاء
                 document.getElementById('video-wrapper').style.display = 'none';
                 document.querySelector('.controls-grid').style.display = 'none';
                 document.querySelector('.mode-switch-container').style.display = 'none';
                 document.querySelector('.subtitle').innerText = "لم يتم تحديد فعالية نشطة";
                 
-                // عرض شاشة اختيار الفعالية بدلاً منها
                 document.getElementById('eventSelectionScreen').style.display = 'block';
                 await loadEventsForSelection();
             } else {
@@ -678,7 +692,6 @@
             }
         });
 
-        // دالة سحب الفعاليات لعرضها في شاشة الاختيار
         async function loadEventsForSelection() {
             const container = document.getElementById('eventsListContainer');
             try {
@@ -731,7 +744,6 @@
         }
 
         function updateModeButtonVisuals() {
-            // تحديث تصميم الزر الداخلي عند التشغيل العادي
             const modeText = document.getElementById('modeText');
             if (currentOperationMode === 'scan') {
                 modeText.innerText = "الوضع الحالي: مسح للدخول";
