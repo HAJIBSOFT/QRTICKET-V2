@@ -293,10 +293,14 @@
                 </div>
             </div>
 
-            <!-- الخانة الجديدة: روابط الفعالية النشطة لتفادي مشكلة النسيان -->
+            <!-- روابط وتفاصيل المناسبة -->
             <div class="panel" style="border: 1px solid var(--primary); background: rgba(99, 102, 241, 0.05); margin-bottom: 25px;">
-                <div class="panel-header" style="border-bottom: 1px solid rgba(99, 102, 241, 0.15);">
-                    <h4><i class="fas fa-link"></i> روابط الفعالية النشطة (<span id="active-event-name-display" style="color: var(--primary);">...</span>)</h4>
+                <div class="panel-header" style="border-bottom: 1px solid rgba(99, 102, 241, 0.15); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                    <h4><i class="fas fa-link"></i> تفاصيل الفعالية وروابطها (<span id="active-event-name-display" style="color: var(--primary);">...</span>)</h4>
+                    <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 15px; flex-wrap: wrap;">
+                        <span><i class="fas fa-calendar-alt"></i> <span id="active-event-date-display">-</span></span>
+                        <span><i class="fas fa-map-marker-alt"></i> <span id="active-event-loc-display">-</span></span>
+                    </div>
                 </div>
                 <div style="padding: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
                     <div style="background: rgba(0,0,0,0.25); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
@@ -367,10 +371,16 @@
 
                 <div style="border-top: 1px solid var(--border); padding-top: 15px; margin-top: 15px; margin-bottom: 20px;">
                     <label style="font-weight: bold; color: var(--primary); display: block; margin-bottom: 5px;">أو إنشاء فعالية جديدة تماماً:</label>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
-                        <input type="text" id="newEventSlug" class="form-control" style="flex: 1; min-width: 150px; margin:0;" placeholder="رابط فريد بالإنجليزية (مثال: ahmad-wedding)">
-                        <input type="text" id="newEventTitle" class="form-control" style="flex: 2; min-width: 200px; margin:0;" placeholder="اسم المناسبة بالكامل باللغة العربية">
-                        <button class="btn btn-secondary" type="button" onclick="createNewEvent()">إنشاء الفعالية</button>
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <input type="text" id="newEventSlug" class="form-control" style="flex: 1; min-width: 150px; margin:0;" placeholder="رابط فريد بالإنجليزية (مثال: ahmad-wedding)">
+                            <input type="text" id="newEventTitle" class="form-control" style="flex: 2; min-width: 200px; margin:0;" placeholder="اسم المناسبة بالكامل باللغة العربية">
+                        </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <input type="text" id="newEventDate" class="form-control" style="flex: 1; min-width: 150px; margin:0;" placeholder="تاريخ الحفل (مثال: الجمعة 15 شعبان)">
+                            <input type="text" id="newEventLocation" class="form-control" style="flex: 1; min-width: 150px; margin:0;" placeholder="موقع الحفل / القاعة (مثال: قاعة الفورسيزون)">
+                        </div>
+                        <button class="btn btn-secondary" style="width: 100%; justify-content: center;" type="button" onclick="createNewEvent()">إنشاء الفعالية الجديدة</button>
                     </div>
                 </div>
 
@@ -454,7 +464,6 @@
                 headerSelect.value = activeEventSlug;
                 generateSelect.value = activeEventSlug;
 
-                // تحديث قائمة الروابط تلقائياً
                 updateEventLinks();
             } catch(e) { console.error("Error loading events", e); }
         }
@@ -467,11 +476,13 @@
             await loadData();
         }
 
-        // دالة إنشاء وتحديث الروابط في لوحة المدير
         function updateEventLinks() {
             const currentEvent = eventsList.find(e => e.slug === activeEventSlug);
             if (currentEvent) {
                 document.getElementById('active-event-name-display').innerText = currentEvent.title;
+                document.getElementById('active-event-date-display').innerText = currentEvent.event_date || 'غير محدد';
+                document.getElementById('active-event-loc-display').innerText = currentEvent.location || 'غير محدد';
+                
                 const base = "https://hajibsoft.github.io/QRTICKET-V2/";
                 document.getElementById('link-scanner').value = `${base}index.html?event=${activeEventSlug}`;
                 document.getElementById('link-designer').value = `${base}designer.html?event=${activeEventSlug}`;
@@ -479,7 +490,6 @@
             }
         }
 
-        // دالة لنسخ الرابط
         function copyEventLink(id) {
             const val = document.getElementById(id).value;
             navigator.clipboard.writeText(val).then(() => {
@@ -490,14 +500,24 @@
         async function createNewEvent() {
             const slug = document.getElementById('newEventSlug').value.trim().toLowerCase();
             const title = document.getElementById('newEventTitle').value.trim();
+            const date = document.getElementById('newEventDate').value.trim();
+            const loc = document.getElementById('newEventLocation').value.trim();
             if (!slug || !title) return alert("الرجاء إدخال اسم المناسبة ورمز الرابط بالإنجليزية");
             
             try {
-                const { error } = await supa.from('events').insert([{ slug, title }]);
+                // حفظ البيانات شاملة الحقول الجديدة للتاريخ والموقع
+                const { error } = await supa.from('events').insert([{ 
+                    slug, 
+                    title,
+                    event_date: date,
+                    location: loc
+                }]);
                 if (error) throw error;
                 alert("تم إنشاء الفعالية بنجاح");
                 document.getElementById('newEventSlug').value = '';
                 document.getElementById('newEventTitle').value = '';
+                document.getElementById('newEventDate').value = '';
+                document.getElementById('newEventLocation').value = '';
                 activeEventSlug = slug;
                 await init();
             } catch(e) { alert("حدث خطأ أثناء الإنشاء، قد يكون الرابط بالإنجليزية مسجل مسبقاً"); }

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تذكرة</title>
+    <title>تذكرة الدعوة الرقمية</title>
     
     <!-- مكتبة Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,18 +13,17 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Tajawal:wght@400;500;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         :root {
-            --bg-dark: #020617;
-            --card-bg: #1e293b;
-            --primary: #6366f1;
-            --accent: #a855f7;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --gold: #fbbf24;
+            --bg-creamy: #faf8f5;
+            --card-white: #ffffff;
+            --gold-primary: #b89047;
+            --gold-light: #dfba73;
+            --text-dark: #2c2520;
+            --text-muted: #7a6e67;
             --st-valid: #10b981;
             --st-used: #f59e0b;
             --st-invalid: #ef4444;
@@ -34,42 +33,188 @@
 
         body {
             font-family: 'Tajawal', sans-serif;
-            background-color: var(--bg-dark);
-            background-image: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(168, 85, 247, 0.15) 0%, transparent 40%);
+            background-color: var(--bg-creamy);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(223, 186, 115, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(184, 144, 71, 0.12) 0%, transparent 40%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
-            color: var(--text-main);
+            color: var(--text-dark);
         }
 
-        .ticket-container { position: relative; width: 100%; max-width: 360px; display: none; animation: popIn 0.6s ease-out; }
+        /* حاوية التذكرة مع تأثيرات بهجة وانبثاق */
+        .ticket-container { 
+            position: relative; 
+            width: 100%; 
+            max-width: 375px; 
+            display: none; 
+            animation: popCelebration 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
         .ticket-container.visible { display: block; }
-        @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        
+        @keyframes popCelebration { 
+            from { opacity: 0; transform: scale(0.85) translateY(30px); } 
+            to { opacity: 1; transform: scale(1) translateY(0); } 
+        }
 
-        .ticket-card { background: var(--card-bg); border-radius: 30px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); }
-        .ticket-header { padding: 40px 20px 20px; text-align: center; }
-        .logo-icon { font-size: 2rem; color: var(--gold); margin-bottom: 10px; }
-        .event-title { font-family: 'Cairo', sans-serif; font-weight: 900; font-size: 1.8rem; color: white; }
-        .ticket-body { padding: 20px; text-align: center; }
-        .guest-name { font-family: 'Cairo', sans-serif; font-size: 2rem; font-weight: 700; color: white; margin-bottom: 15px; }
+        /* تصميم الكارت الفاخر بخلفية بيضاء نقية وتفاصيل ذهبية */
+        .ticket-card { 
+            background: var(--card-white); 
+            border-radius: 35px; 
+            overflow: hidden; 
+            box-shadow: 0 25px 60px rgba(139, 115, 85, 0.15), 0 0 0 1px rgba(184, 144, 71, 0.1); 
+            position: relative;
+            border: 1px solid rgba(184, 144, 71, 0.15);
+        }
 
-        .ticket-footer { background: rgba(0, 0, 0, 0.2); padding: 30px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; }
-        .qr-frame { background: white; padding: 12px; border-radius: 18px; margin-bottom: 15px; }
+        /* لمسة احتفالية ذهبية في أعلى البطاقة */
+        .ticket-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, var(--gold-primary), var(--gold-light), var(--gold-primary));
+        }
 
-        .status-indicator { padding: 8px 24px; border-radius: 50px; font-weight: bold; border: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 15px; }
-        .st-valid .status-indicator { color: var(--st-valid); border-color: var(--st-valid); }
-        .st-used .status-indicator { color: var(--st-used); border-color: var(--st-used); }
-        .st-invalid .status-indicator { color: var(--st-invalid); border-color: var(--st-invalid); }
+        .ticket-header { padding: 45px 20px 20px; text-align: center; }
+        
+        /* أيقونة ذهبية احتفالية */
+        .logo-icon { 
+            font-size: 2.2rem; 
+            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px; 
+            display: inline-block;
+        }
 
-        #appleWalletContainer { display: none; margin-top: 10px; }
-        .apple-wallet-button { background: none; border: none; cursor: pointer; transition: transform 0.2s; }
-        .apple-wallet-button:active { transform: scale(0.95); }
-        .apple-wallet-button img { width: 180px; height: auto; }
+        .event-title { 
+            font-family: 'Cairo', sans-serif; 
+            font-weight: 900; 
+            font-size: 1.65rem; 
+            color: var(--text-dark); 
+            line-height: 1.3;
+        }
+
+        .ticket-body { padding: 15px 25px; text-align: center; }
+        
+        /* وسم الترحيب */
+        .welcome-badge {
+            background: rgba(184, 144, 71, 0.08);
+            color: var(--gold-primary);
+            font-size: 0.75rem;
+            font-weight: 800;
+            padding: 4px 16px;
+            border-radius: 50px;
+            display: inline-block;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .guest-name { 
+            font-family: 'Cairo', sans-serif; 
+            font-size: 1.85rem; 
+            font-weight: 700; 
+            color: var(--text-dark); 
+            margin-bottom: 20px; 
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.02);
+        }
+
+        /* مربع تفاصيل الموقع والتاريخ الفني الجديد */
+        .event-details-box {
+            background: #fdfbf7;
+            border: 1px solid rgba(184, 144, 71, 0.12);
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            text-align: right;
+        }
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .detail-item i {
+            color: var(--gold-primary);
+            font-size: 1.1rem;
+            margin-bottom: 2px;
+        }
+        .detail-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: bold;
+        }
+        .detail-value {
+            font-size: 0.85rem;
+            color: var(--text-dark);
+            font-weight: 800;
+        }
+
+        .ticket-footer { 
+            background: rgba(184, 144, 71, 0.03); 
+            padding: 30px 20px; 
+            text-align: center; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            border-top: 1px dashed rgba(184, 144, 71, 0.15);
+        }
+
+        /* إطار الباركود المنقش بجماليات كلاسيكية */
+        .qr-frame { 
+            background: white; 
+            padding: 14px; 
+            border-radius: 22px; 
+            margin-bottom: 15px; 
+            box-shadow: 0 10px 30px rgba(139, 115, 85, 0.08);
+            border: 2px dashed rgba(184, 144, 71, 0.2);
+        }
+
+        .status-indicator { 
+            padding: 8px 24px; 
+            border-radius: 50px; 
+            font-weight: 800; 
+            font-size: 0.85rem;
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            margin-bottom: 20px; 
+        }
+        
+        .st-valid .status-indicator { color: var(--st-valid); border-color: var(--st-valid); background: rgba(16, 185, 129, 0.06); }
+        .st-used .status-indicator { color: var(--st-used); border-color: var(--st-used); background: rgba(245, 158, 11, 0.06); }
+        .st-invalid .status-indicator { color: var(--st-invalid); border-color: var(--st-invalid); background: rgba(239, 68, 68, 0.06); }
+
+        /* منطقة أزرار المحفظة الذكية */
+        .wallet-buttons-container { 
+            display: none; 
+            width: 100%;
+            margin-top: 10px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        .apple-wallet-button, .google-wallet-button { 
+            background: none; 
+            border: none; 
+            cursor: pointer; 
+            transition: transform 0.2s, opacity 0.2s; 
+            height: 48px;
+            display: block;
+        }
+        .apple-wallet-button:active, .google-wallet-button:active { transform: scale(0.96); }
+        .apple-wallet-button img, .google-wallet-button img { 
+            height: 100%; 
+            width: auto; 
+            object-fit: contain;
+        }
 
         #loadingIndicator { text-align: center; }
-        .loader { width: 40px; height: 40px; border: 3px solid #fff; border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        .loader { width: 40px; height: 40px; border: 3px solid var(--gold-primary); border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
@@ -77,29 +222,47 @@
 
     <div id="loadingIndicator">
         <span class="loader"></span>
-        <p style="color: var(--text-muted); margin-top: 15px;">جاري تحميل التذكرة...</p>
+        <p style="color: var(--text-muted); margin-top: 15px; font-weight: bold;">جاري تجهيز بطاقة الدعوة الفاخرة...</p>
     </div>
 
     <div class="ticket-container" id="ticketContainer">
         <div class="ticket-card" id="ticketCard">
             <div class="ticket-header">
                 <i class="fas fa-crown logo-icon"></i>
-                <div class="event-title" id="eventTitle">دعوة خاصة</div>
+                <div class="event-title" id="eventTitle">حفل الزواج المبارك</div>
             </div>
 
             <div class="ticket-body">
-                <span style="color: var(--accent); font-size: 0.8rem; font-weight: bold;">حامل الدعوة</span>
+                <span class="welcome-badge">بطاقة دعوة خاصة</span>
                 <div class="guest-name" id="guestName">...</div>
+                
+                <!-- تفاصيل الحفل الفنية (التاريخ والموقع) -->
+                <div class="event-details-box">
+                    <div class="detail-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span class="detail-label">التاريخ والوقت</span>
+                        <span class="detail-value" id="eventDate">-</span>
+                    </div>
+                    <div class="detail-item" style="border-right: 1px solid rgba(184, 144, 71, 0.15); padding-right: 10px;">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span class="detail-label">المكان والقاعة</span>
+                        <span class="detail-value" id="eventLocation">-</span>
+                    </div>
+                </div>
             </div>
 
             <div class="ticket-footer">
                 <div class="qr-frame"><div id="qrcodeDisplay"></div></div>
-                <div id="ticketIdText" style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 15px;">ID: ...</div>
+                <div id="ticketIdText" style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 15px; font-family: monospace;">ID: ...</div>
                 <div class="status-indicator" id="statusBadge">جاري التحقق...</div>
 
-                <div id="appleWalletContainer">
-                    <button onclick="addToAppleWallet()" class="apple-wallet-button" id="walletBtn">
+                <!-- أزرار المحفظة لأجهزة ابل واندرويد بتناسق فني كامل -->
+                <div class="wallet-buttons-container" id="walletButtonsContainer">
+                    <button onclick="addToAppleWallet()" class="apple-wallet-button" id="appleWalletBtn" title="إضافة إلى Apple Wallet">
                         <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhoXzwbsszXm6o4CnAGon7WqRGEQUpuhM057aAAyU6QZE77KlI6JLfNh2nPG4Bhkbjvj08GstICO0IUNJJuFBg-Xn1JnrMZbBF8DGeudBSv7q9D8YXhgB8outcHSMleh2h8DolK6M9CB70SdFsZm2xW29akyhQDkc2c7TigkDMudtz1dC2GBtBjiIRHJKbN/s3840/Add_to_Apple_Wallet_badge.svg.png" alt="Add to Apple Wallet">
+                    </button>
+                    <button onclick="addToGoogleWallet()" class="google-wallet-button" id="googleWalletBtn" title="إضافة إلى Google Wallet">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Add_to_Google_Wallet_badge.svg" alt="Add to Google Wallet">
                     </button>
                 </div>
             </div>
@@ -107,7 +270,7 @@
     </div>
 
     <script>
-        // إعداد وتوصيل مكتبة Supabase بالتعديل الجديد
+        // إعداد وتوصيل مكتبة Supabase
         const SUPABASE_URL = 'https://bigisnpdoqxmpjwpbncv.supabase.co'; 
         const SUPABASE_ANON_KEY = 'sb_publishable_6ZtAL8lRYdreWg4Xhn6zLA_7-PwGvPJ'; 
         const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -120,15 +283,18 @@
             const eventSlug = urlParams.get('event');
             
             if (!qrData || !eventSlug) {
-                document.getElementById('loadingIndicator').innerHTML = '<p style="color:red">عذراً، الرابط غير صحيح أو ناقص المعلمات.</p>';
+                document.getElementById('loadingIndicator').innerHTML = '<p style="color:red">عذراً، الرابط غير مكتمل أو غير صحيح.</p>';
                 return;
             }
 
-            const isIPhone = /iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            if (isIPhone) document.getElementById('appleWalletContainer').style.display = 'block';
+            // إظهار المحافظ للأجهزة المحمولة
+            const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            if (isMobile) {
+                document.getElementById('walletButtonsContainer').style.display = 'flex';
+            }
 
             try {
-                // استخدام supa لسحب التذكرة
+                // سحب التذكرة
                 const { data: ticket, error: tError } = await supa
                     .from('tickets')
                     .select('*')
@@ -140,10 +306,10 @@
                     throw new Error("تذكرة غير صالحة");
                 }
 
-                // سحب اسم الحفل باستخدام supa
+                // سحب بيانات الفعالية
                 const { data: eventData } = await supa
                     .from('events')
-                    .select('title')
+                    .select('title, event_date, location')
                     .eq('slug', eventSlug)
                     .single();
 
@@ -156,6 +322,10 @@
                 document.getElementById('eventTitle').innerText = currentTicket.eventName;
                 document.getElementById('guestName').innerText = ticket.guest_name;
                 document.getElementById('ticketIdText').innerText = "ID: " + ticket.id;
+                
+                // عرض التاريخ والموقع اللذين تمت إضافتهما
+                document.getElementById('eventDate').innerText = (eventData && eventData.event_date) ? eventData.event_date : 'يحدد لاحقاً';
+                document.getElementById('eventLocation').innerText = (eventData && eventData.location) ? eventData.location : 'يحدد لاحقاً';
                 
                 new QRCode(document.getElementById('qrcodeDisplay'), { text: ticket.id, width: 140, height: 140 });
                 updateUI(ticket.status);
@@ -178,9 +348,10 @@
             }
         }
 
+        // إضافة إلى محفظة أبل (Apple Wallet)
         async function addToAppleWallet() {
             if (!currentTicket) return;
-            const btn = document.getElementById('walletBtn');
+            const btn = document.getElementById('appleWalletBtn');
             btn.style.opacity = "0.5";
 
             try {
@@ -198,7 +369,7 @@
                     })
                 });
 
-                if (!response.ok) throw new Error('WalletWallet API Error');
+                if (!response.ok) throw new Error('Wallet API Error');
 
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
@@ -209,7 +380,47 @@
                 a.click();
                 window.URL.revokeObjectURL(url);
             } catch (e) {
-                alert("تعذر حفظ التذكرة للـ Wallet، يرجى حفظ لقطة شاشة للـ QR كبديل.");
+                alert("عذراً، حدثت قيود اتصال بالخدمة، يرجى حفظ لقطة شاشة لرمز الـ QR.");
+                console.error(e);
+            } finally {
+                btn.style.opacity = "1";
+            }
+        }
+
+        // إضافة إلى محفظة جوجل (Google Wallet)
+        async function addToGoogleWallet() {
+            if (!currentTicket) return;
+            const btn = document.getElementById('googleWalletBtn');
+            btn.style.opacity = "0.5";
+
+            try {
+                // استخدام نفس مزود محاكاة المحفظة لإنشاء الرابط وحفظه للهاتف
+                const response = await fetch('https://api.walletwallet.dev/api/pkpass', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ww_live_d725637056c71ad72de934242e861523'
+                    },
+                    body: JSON.stringify({
+                        barcodeValue: currentTicket.id,
+                        barcodeFormat: "QR",
+                        title: currentTicket.guest_name,
+                        colorPreset: "dark"
+                    })
+                });
+
+                if (!response.ok) throw new Error('Wallet API Error');
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `google-pass.pkpass`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            } catch (e) {
+                alert("حدثت مشكلة اتصال بمخدم حفظ المحفظة، الرجاء الاحتفاظ بلقطة الشاشة لرمز الـ QR لتسجيل حضورك.");
                 console.error(e);
             } finally {
                 btn.style.opacity = "1";
