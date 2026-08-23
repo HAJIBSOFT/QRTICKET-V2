@@ -121,11 +121,11 @@
             </div>
         </div>
 
-        <!-- لوحة بث إشعارات المحفظة الفورية الجديدة -->
+        <!-- لوحة بث إشعارات المحفظة الفورية (تم إصلاحها لترسل الهيكل الكامل) -->
         <div class="report-panel" style="border: 1px solid var(--secondary); background: rgba(168, 85, 247, 0.04); padding: 25px;">
             <h3 style="color: var(--secondary); margin-bottom: 8px;"><i class="fas fa-bell"></i> بث إشعار فوري لمحافظ الضيوف</h3>
             <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px; line-height: 1.6;">
-                يمكنك كتابة رسالة هنا وإرسالها؛ لتصل على شاشات قفل هواتف الضيوف (Apple & Google Wallet) الذين قاموا بإضافة التذكرة لمحافظهم بشكل فوري.
+                يمكنك كتابة رسالة هنا وإرسالها؛ لتصل على شاشات قفل هواتف الضيوف (Apple & Google Wallet) بشكل فوري.
             </p>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <input type="text" id="notificationText" class="filter-btn" style="flex: 1; min-width: 250px; padding: 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 10px; color: white; text-align: right;" placeholder="مثال: بدأ العشاء الآن، تفضلوا بقبول تحياتنا...">
@@ -279,24 +279,33 @@
             `).join('');
         }
 
-        // دالة إرسال الإشعارات عبر API الـ PUT الخاص بمحفظة WalletWallet لجميع الضيوف
+        // دالة إرسال الإشعارات المحدثة (تدمج وترسل هيكل البطاقة بالكامل)
         async function sendWalletNotifications() {
             const text = document.getElementById('notificationText').value.trim();
             if (!text) return alert("الرجاء كتابة نص الإشعار للبث");
             
             const statusDiv = document.getElementById('notif-status');
             statusDiv.style.color = "var(--text-muted)";
-            statusDiv.innerText = "جاري جلب قائمة أجهزة الضيوف النشطة من السجلات...";
+            statusDiv.innerText = "جاري جلب تفاصيل المناسبة وأرقام هواتف الضيوف النشطة...";
 
             try {
-                // سحب التذاكر التي تحتوي على رقم سيريال مسجل
-                const { data: tickets, error } = await supa
+                // 1. جلب بيانات الفعالية (الاسم، الموقع، التاريخ) لبناء الهيكل الكامل
+                const { data: eventData, error: eventErr } = await supa
+                    .from('events')
+                    .select('title, event_date, location')
+                    .eq('slug', eventSlug)
+                    .single();
+
+                if (eventErr || !eventData) throw new Error("تعذر جلب تفاصيل الفعالية النشطة");
+
+                // 2. سحب التذاكر التي تحتوي على رقم سيريال مسجل
+                const { data: tickets, error: ticketErr } = await supa
                     .from('tickets')
-                    .select('serial_number, guest_name')
+                    .select('id, serial_number, guest_name')
                     .eq('event_slug', eventSlug)
                     .not('serial_number', 'is', null);
 
-                if (error) throw error;
+                if (ticketErr) throw ticketErr;
 
                 if (!tickets || tickets.length === 0) {
                     statusDiv.innerHTML = `<span style="color:var(--danger)">لم يقم أي ضيف بإضافة تذكرته للمحفظة الرقمية بعد، لا توجد أجهزة نشطة للبث.</span>`;
@@ -306,7 +315,7 @@
                 statusDiv.innerText = `جاري بث الإشعار إلى ${tickets.length} هاتف نشط...`;
                 let successCount = 0;
 
-                // تحديث حقل الـ Notifications وبث الإشعار الفوري
+                // تحديث وإرسال الطلب الكامل (Full Specification) لكل تذكرة بشكل منفصل
                 for (const t of tickets) {
                     try {
                         const response = await fetch(`https://api.walletwallet.dev/api/passes/${t.serial_number}`, {
@@ -316,15 +325,43 @@
                                 'Authorization': 'Bearer ww_live_d725637056c71ad72de934242e861523'
                             },
                             body: JSON.stringify({
-                                backFields: [
+                                "barcodeValue": t.id,
+                                "barcodeFormat": "QR",
+                                "logoText": eventData.title,
+                                "organizationName": "HAJIB SOFT ",
+                                "colorPreset": "dark",
+                                "color": "#ffffff",
+                                "logoURL": "https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/icon.png",
+                                "iconURL": "https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/icon.png",
+                                "stripURL": "https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/strip%20(1).png",
+                                "secondaryFields": [
                                     {
-                                        label: "جميع الحقوق محفوظة ",
-                                        value: "HAJIB SOFT TEAM "
+                                        "label": "اسم صاحب الدعوة:",
+                                        "value": t.guest_name
                                     },
                                     {
-                                        label: "Notifications",
-                                        value: text,
-                                        changeMessage: "%@"
+                                        "label": "الموقع :",
+                                        "value": eventData.location || "يحدد لاحقاً"
+                                    },
+                                    {
+                                        "label": "التاريخ:",
+                                        "value": eventData.event_date || "يحدد لاحقاً"
+                                    }
+                                ],
+                                "headerFields": [
+                                    {
+                                        "value": "الرجاء ابراز بطاقة الدعوة عند الدخول"
+                                    }
+                                ],
+                                "backFields": [
+                                    {
+                                        "label": "جميع الحقوق محفوظة ",
+                                        "value": "HAJIB SOFT TEAM "
+                                    },
+                                    {
+                                        "label": "Notifications",
+                                        "value": text,
+                                        "changeMessage": "%@"
                                     }
                                 ]
                             })
