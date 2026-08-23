@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -5,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HAJIB SCANNER | الماسح الضوئي</title>
 
+    <!-- مكتبة Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- مكتبة QR -->
     <script src="js/jsQR.js"></script> 
 
@@ -40,7 +43,6 @@
             overflow-x: hidden;
         }
 
-        /* --- Header Design --- */
         header {
             width: 100%;
             padding: 20px;
@@ -63,7 +65,6 @@
 
         .subtitle { font-size: 0.9rem; color: #94a3b8; }
 
-        /* --- Main Container --- */
         .app-container {
             width: 100%;
             max-width: 480px;
@@ -75,7 +76,6 @@
             padding-bottom: 80px;
         }
 
-        /* --- Mode Toggle --- */
         .mode-switch-container {
             margin: 20px 0;
             width: 100%;
@@ -97,11 +97,10 @@
             gap: 10px;
         }
 
-        /* --- Scanner Box --- */
         #video-wrapper {
             position: relative;
             width: 100%;
-            aspect-ratio: 1/1; /* مربع */
+            aspect-ratio: 1/1;
             background: #000;
             border-radius: 24px;
             overflow: hidden;
@@ -112,7 +111,6 @@
         #videoElement { width: 100%; height: 100%; object-fit: cover; }
         #detectionCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
         
-        /* Laser Animation Overlay */
         .scanner-overlay {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -129,7 +127,7 @@
             top: 0;
             animation: scan 2.5s infinite linear;
             opacity: 0.6;
-            display: none; /* يظهر فقط عند تفعيل الكاميرا */
+            display: none;
         }
         @keyframes scan {
             0% { top: 10%; opacity: 0; }
@@ -149,7 +147,6 @@
         .bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
         .br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
 
-        /* --- Buttons --- */
         .controls-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -157,11 +154,7 @@
             width: 100%;
         }
 
-        button {
-            cursor: pointer;
-            border: none;
-            font-family: inherit;
-        }
+        button { cursor: pointer; border: none; font-family: inherit; }
 
         .btn-primary {
             grid-column: span 2;
@@ -194,7 +187,6 @@
         }
         .btn-stop { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border-color: rgba(239, 68, 68, 0.3); }
 
-        /* --- Manual Input --- */
         #manualTicketLookup {
             display: none;
             width: 100%;
@@ -220,14 +212,14 @@
         }
         input:focus { border-color: var(--secondary); }
 
-        /* --- POPUP MODAL (THE NEW FEATURE) --- */
+        /* POPUP MODAL */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(8px);
             z-index: 1000;
-            display: none; /* مخفي افتراضياً */
+            display: none;
             align-items: center;
             justify-content: center;
             padding: 20px;
@@ -251,12 +243,7 @@
         .modal-overlay.active { display: flex; opacity: 1; }
         .modal-overlay.active .modal-card { transform: scale(1); }
 
-        /* Modal States */
-        .modal-icon {
-            font-size: 4rem;
-            margin-bottom: 20px;
-            display: inline-block;
-        }
+        .modal-icon { font-size: 4rem; margin-bottom: 20px; display: inline-block; }
         
         .loader-ring {
             width: 60px; height: 60px;
@@ -282,7 +269,6 @@
             font-size: 1rem;
         }
         
-        /* Status Colors */
         .state-success .modal-icon { color: var(--success); }
         .state-success .btn-modal { background: var(--success); }
         
@@ -291,7 +277,6 @@
         
         .state-warning .modal-icon { color: var(--warning); }
         .state-warning .btn-modal { background: var(--warning); }
-
     </style>
 </head>
 <body>
@@ -303,21 +288,18 @@
 
     <div class="app-container">
         
-        <!-- مفتاح تبديل الوضع -->
         <div class="mode-switch-container">
             <button id="toggleModeButton">
                 <i class="fas fa-sync-alt"></i>
-                <span id="modeText">الوضع الحالي: جاري التحميل...</span>
+                <span id="modeText">الوضع الحالي: مسح للدخول</span>
             </button>
         </div>
 
-        <!-- منطقة الكاميرا -->
         <div id="video-wrapper">
             <video id="videoElement" playsinline autoplay muted></video>
             <canvas id="detectionCanvas"></canvas>
             <canvas id="qrAnalysisCanvas" style="display: none;"></canvas>
             
-            <!-- طبقة التصميم فوق الكاميرا -->
             <div class="scanner-overlay">
                 <div class="scanner-laser" id="scannerLaser"></div>
                 <div class="corner-marker tl"></div>
@@ -327,9 +309,19 @@
             </div>
         </div>
 
+        <!-- شاشة اختيار الفعالية في حال نسيان المعامِل في الرابط -->
+        <div id="eventSelectionScreen" style="display: none; width: 100%; max-width: 480px; padding: 25px 20px; text-align: center; background: var(--card-bg); border-radius: 24px; border: 1px solid var(--glass-border); margin-top: 20px; animation: slideUp 0.3s ease;">
+            <i class="fas fa-calendar-alt" style="font-size: 3.5rem; color: var(--secondary); margin-bottom: 15px; display: block;"></i>
+            <h2 style="font-family: 'Cairo', sans-serif; font-size: 1.3rem; margin-bottom: 10px;">الرجاء اختيار الفعالية النشطة</h2>
+            <p style="color: #cbd5e1; font-size: 0.9rem; margin-bottom: 20px; line-height: 1.6;">لم يتم تحديد الفعالية في رابط الصفحة. الرجاء اختيار الفعالية للبدء في مسح التذاكر وتسجيل الحضور:</p>
+            
+            <div id="eventsListContainer" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 5px;">
+                <div style="color: #94a3b8;"><i class="fas fa-spinner fa-spin"></i> جاري تحميل قائمة الفعاليات...</div>
+            </div>
+        </div>
+
         <div id="loadingMessage" style="display:none; color:#94a3b8; margin-bottom:10px;">جاري إعداد الكاميرا...</div>
 
-        <!-- الأزرار -->
         <div class="controls-grid">
             <button id="startScanButton" class="btn-primary">
                 <i class="fas fa-camera"></i> تشغيل الكاميرا
@@ -347,7 +339,6 @@
             </button>
         </div>
 
-        <!-- الإدخال اليدوي -->
         <div id="manualTicketLookup">
             <label style="color: #cbd5e1; display: block; margin-bottom: 5px;">رقم التذكرة / الكود:</label>
             <input type="text" id="manualTicketId" placeholder="XXXXXXXX-XXXX">
@@ -356,32 +347,29 @@
             </button>
         </div>
 
-        <!-- عنصر مخفي للحفاظ على التوافق مع الكود القديم إن وجد، لكننا لن نستخدمه للعرض -->
         <div id="scan-status-wrapper" style="display: none;"></div>
-
     </div>
 
-    <!-- ============== POPUP MODAL (النافذة المنبثقة الجديدة) ============== -->
     <div id="resultModal" class="modal-overlay">
         <div class="modal-card">
-            <div id="modalContent">
-                <!-- المحتوى سيتغير ديناميكياً هنا -->
-            </div>
+            <div id="modalContent"></div>
             <button onclick="closeModal()" class="btn-modal" id="modalCloseBtn">اغلاق</button>
         </div>
     </div>
 
-    <!-- الأصوات -->
     <audio id="successSound" src="success.mp3" preload="auto"></audio>
     <audio id="errorSound" src="error.mp3" preload="auto"></audio>
     <audio id="usedSound" src="used.mp3" preload="auto"></audio>
     <audio id="infoSound" src="success.mp3" preload="auto"></audio>
 
     <script>
-        // ---!!! الرابط لتطبيق Google Apps Script !!!---
-        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzcJyxjZ4DcOKkboUYvDOrkWs5PVsKScetEzEvSXwzIL3sFGb0JHHVpTzZRksiaBJsW/exec';
+        const SUPABASE_URL = 'https://bigisnpdoqxmpjwpbncv.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'sb_publishable_6ZtAL8lRYdreWg4Xhn6zLA_7-PwGvPJ'; 
+        const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // المتغيرات وعناصر الصفحة
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventSlug = urlParams.get('event');
+
         const video = document.getElementById('videoElement');
         const qrAnalysisCanvasElement = document.getElementById('qrAnalysisCanvas');
         const qrAnalysisCanvas = qrAnalysisCanvasElement.getContext('2d', { willReadFrequently: true });
@@ -390,7 +378,6 @@
         const videoWrapper = document.getElementById('video-wrapper');
         const scannerLaser = document.getElementById('scannerLaser');
 
-        const scanStatusWrapper = document.getElementById('scan-status-wrapper'); // Keep for safety
         const loadingMessage = document.getElementById('loadingMessage');
         const startScanButton = document.getElementById('startScanButton');
         const stopScanButton = document.getElementById('stopScanButton');
@@ -399,7 +386,6 @@
         const showLookupButton = document.getElementById('showLookupButton');
         const manualTicketIdInput = document.getElementById('manualTicketId');
 
-        // Modal Elements
         const resultModal = document.getElementById('resultModal');
         const modalContent = document.getElementById('modalContent');
         const modalCloseBtn = document.getElementById('modalCloseBtn');
@@ -414,14 +400,8 @@
         let stream = null;
         let animationFrameId = null;
         let processingQrCode = false;
-        const SCAN_RESTART_DELAY = 1000; // قللت التأخير لأننا سنعتمد على إغلاق المودال
-        let lastDetectedQrLocation = null;
-
         let currentOperationMode = 'scan';
-        const SCAN_MODE_TEXT_BTN = "مسح للدخول";
-        const CHECK_MODE_TEXT_BTN = "تحقق من الصلاحية";
 
-        // --- دوال الصوت والتشغيل ---
         function unlockAudio() {
             if (audioUnlocked) return;
             audioElements.forEach(audio => {
@@ -437,12 +417,10 @@
             }
         }
 
-        // --- دوال المودال (النافذة المنبثقة) ---
         function showModalLoading(text) {
-            resultModal.className = 'modal-overlay active'; // Show
-            modalContent.parentElement.className = 'modal-card'; // Reset colors
-            modalCloseBtn.style.display = 'none'; // Hide button while loading
-            
+            resultModal.className = 'modal-overlay active';
+            modalContent.parentElement.className = 'modal-card';
+            modalCloseBtn.style.display = 'none';
             modalContent.innerHTML = `
                 <div class="loader-ring"></div>
                 <div class="modal-title">جاري المعالجة...</div>
@@ -455,7 +433,6 @@
             modalCloseBtn.style.display = 'block';
             modalCloseBtn.innerText = "اغلاق";
 
-            // تحديد الستايل والأيقونة بناءً على النوع
             let iconClass = "fa-info-circle";
             let stateClass = "state-info";
 
@@ -471,7 +448,6 @@
             }
 
             modalContent.parentElement.className = `modal-card ${stateClass}`;
-            
             modalContent.innerHTML = `
                 <i class="fas ${iconClass} modal-icon"></i>
                 <div class="modal-title">${title}</div>
@@ -479,25 +455,15 @@
             `;
         }
 
-    function closeModal() {
-    // 1. إخفاء النافذة
-    resultModal.classList.remove('active');
+        function closeModal() {
+            resultModal.classList.remove('active');
+            processingQrCode = false;
+            if (stream && stream.active) {
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                animationFrameId = requestAnimationFrame(tick);
+            }
+        }
 
-    // 2. السماح بالمسح مرة أخرى
-    processingQrCode = false;
-    lastDetectedQrLocation = null;
-
-    // 3. إعادة تشغيل حلقة الكاميرا فوراً (هذا هو الجزء الذي كان يسبب المشكلة)
-    if (stream && stream.active) {
-        // إلغاء أي عملية سابقة عالقة لضمان عدم التكرار
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        
-        // تشغيل المسح من جديد
-        animationFrameId = requestAnimationFrame(tick);
-    }
-}
-
-        // --- الرسم على الكانفاس (كما هو) ---
         function drawLine(begin, end, color) {
             detectionCanvas.beginPath();
             detectionCanvas.moveTo(begin.x, begin.y);
@@ -509,11 +475,11 @@
         }
 
         function tick() {
-            if (processingQrCode) return; // توقف عن الرسم إذا كنا نعالج كود
+            if (processingQrCode) return;
 
             if (video.readyState === video.HAVE_ENOUGH_DATA) {
                 loadingMessage.style.display = 'none';
-                scannerLaser.style.display = 'block'; // Show laser
+                scannerLaser.style.display = 'block';
 
                 if (qrAnalysisCanvasElement.width !== video.videoWidth) {
                     qrAnalysisCanvasElement.width = video.videoWidth;
@@ -530,8 +496,6 @@
                     const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
 
                     if (code && code.data) {
-                        lastDetectedQrLocation = code.location;
-                        // رسم مربع حول الكود
                         const scaleX = detectionCanvasElement.width / qrAnalysisCanvasElement.width;
                         const scaleY = detectionCanvasElement.height / qrAnalysisCanvasElement.height;
                         
@@ -547,8 +511,8 @@
                         drawLine(loc.bottomRight, loc.bottomLeft, "#10b981");
                         drawLine(loc.bottomLeft, loc.topLeft, "#10b981");
 
-                        processingQrCode = true; // Stop scanning logic
-                        processScannedCode(code.data, 'scan');
+                        processingQrCode = true;
+                        processScannedCode(code.data);
                     }
                 } catch (err) { console.error(err); }
             }
@@ -557,38 +521,12 @@
             }
         }
 
-        // --- تحديث الواجهة (تم التعديل لتدعم المودال) ---
-        function updateScanStatus(htmlMessage, type = 'info', playDefaultSound = false) {
-            // هذه الدالة كانت تعرض النص في الصفحة، الآن لا نحتاجها بنفس الشكل
-            // لكن سنتركها للأخطاء البسيطة
-            console.log(type, htmlMessage);
-            if (playDefaultSound) {
-                if(type === 'success') playSound(successSound);
-                else if (type === 'error') playSound(errorSound);
-                else if (type === 'warning') playSound(usedSound);
-            }
-        }
-
-        function updateModeButtonVisuals() {
-            const modeText = document.getElementById('modeText');
-            if (currentOperationMode === 'scan') {
-                modeText.innerText = SCAN_MODE_TEXT_BTN;
-                toggleModeButton.style.borderColor = 'var(--glass-border)';
-            } else {
-                modeText.innerText = CHECK_MODE_TEXT_BTN;
-                toggleModeButton.style.borderColor = 'var(--warning)';
-            }
-        }
-
-        toggleModeButton.addEventListener('click', () => {
-            unlockAudio();
-            currentOperationMode = (currentOperationMode === 'scan') ? 'check' : 'scan';
-            updateModeButtonVisuals();
-        });
-
-        // --- الكاميرا ---
         async function startCamera() {
             unlockAudio();
+            if (!eventSlug) {
+                alert("الرجاء اختيار فعالية أولاً للتمكن من تشغيل الكاميرا.");
+                return;
+            }
             if (stream && stream.active) return;
             
             startScanButton.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> تشغيل...';
@@ -605,7 +543,6 @@
                     animationFrameId = requestAnimationFrame(tick);
                 };
             } catch (err) {
-                console.error(err);
                 startScanButton.innerHTML = '<i class="fas fa-camera"></i> تشغيل الكاميرا';
                 alert("تعذر الوصول للكاميرا: " + err.message);
             }
@@ -621,100 +558,189 @@
             processingQrCode = false;
         }
 
-        startScanButton.addEventListener('click', startCamera);
-        stopScanButton.addEventListener('click', stopCamera);
+        async function processScannedCode(qrCodeData) {
+            if (!eventSlug) {
+                showModalResult("error", "خطأ الفعالية", "لم يتم العثور على اسم الفعالية في رابط الماسح.");
+                playSound(errorSound);
+                return;
+            }
 
-        // --- معالجة الكود (المنطق الأساسي) ---
-        async function processScannedCode(qrCodeData, inputSource = 'scan') {
-            
-            // 1. إظهار المودال (تحميل)
-            let actionText = (currentOperationMode === 'scan') ? 'جاري التحقق وتسجيل الدخول...' : 'جاري فحص صلاحية التذكرة...';
+            let actionText = (currentOperationMode === 'scan') ? 'جاري تسجيل الدخول وحفظ البيانات...' : 'جاري التحقق من التذكرة...';
             showModalLoading(`الكود: <strong>${qrCodeData}</strong><br>${actionText}`);
 
-            let endpointAction = (currentOperationMode === 'check') ? 'checkTicketStatus' : 'scanTicket';
-            const formData = new FormData();
-            formData.append('action', endpointAction);
-            formData.append('qrCodeData', qrCodeData);
-
             try {
-                const response = await fetch(WEB_APP_URL, { method: 'POST', body: formData });
-                if (!response.ok) throw new Error("خطأ في الخادم");
-                
-                const result = await response.json();
-                
-                // 2. تحليل النتيجة وعرضها في المودال
+                const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                if (!uuidPattern.test(qrCodeData)) {
+                    showModalResult("error", "تذكرة غير صالحة", "كود التذكرة غير معتمد في هذا النظام.");
+                    playSound(errorSound);
+                    return;
+                }
+
+                const { data: ticket, error } = await supa
+                    .from('tickets')
+                    .select('*')
+                    .eq('id', qrCodeData)
+                    .eq('event_slug', eventSlug)
+                    .single();
+
+                if (error || !ticket) {
+                    showModalResult("error", "تذكرة غير موجودة", "الكود الممسوح غير مدرج في سجلات هذه الفعالية.");
+                    playSound(errorSound);
+                    return;
+                }
+
                 let title = "";
                 let details = "";
                 let type = "info";
                 let sound = infoSound;
 
-                if (result.success) {
-                    if (result.status === "valid_and_used") {
-                        title = "تم الدخول بنجاح";
-                        details = `الضيف: <strong>${result.guestName}</strong><br>تم التسجيل: ${result.scannedAt}`;
-                        type = "success";
-                        sound = successSound;
-                    } else if (result.status === "valid_not_used") {
-                        title = "تذكرة صالحة";
-                        details = `الضيف: <strong>${result.guestName}</strong><br>لم تستخدم بعد.`;
-                        type = "success";
-                        sound = infoSound;
-                    } else if (result.status === "already_used") {
-                        title = "تذكرة مستخدمة!";
-                        details = `الضيف: ${result.guestName}<br>الدخول السابق: ${result.scannedAt}`;
+                if (currentOperationMode === 'scan') {
+                    if (ticket.status === 'Attended') {
+                        title = "التذكرة مستخدمة مسبقاً!";
+                        const timeStr = ticket.arrival_time ? new Date(ticket.arrival_time).toLocaleString('ar-SA') : 'غير مسجل';
+                        details = `الضيف الكريم: <strong>${ticket.guest_name}</strong><br>تم الدخول مسبقاً في: ${timeStr}`;
                         type = "warning";
                         sound = usedSound;
                     } else {
-                        title = "عملية ناجحة";
-                        details = result.message;
-                        type = "info";
+                        const now = new Date().toISOString();
+                        const { error: updateError } = await supa
+                            .from('tickets')
+                            .update({ status: 'Attended', arrival_time: now })
+                            .eq('id', qrCodeData);
+
+                        if (updateError) throw updateError;
+
+                        title = "تم تسجيل الحضور بنجاح";
+                        details = `أهلاً وسهلاً بالضيف: <strong>${ticket.guest_name}</strong><br>تمت عملية المصادقة ودخولك مسجل بالخلفية.`;
+                        type = "success";
+                        sound = successSound;
                     }
                 } else {
-                    type = "error";
-                    sound = errorSound;
-                    if (result.status === "not_found") {
-                        title = "تذكرة غير موجودة";
-                        details = "هذا الكود غير مسجل في النظام.";
-                    } else if (result.status === "already_used") {
-                        title = "مستخدمة مسبقاً";
-                        details = `الضيف: ${result.guestName}<br>تم الدخول في: ${result.scannedAt}`;
-                        type = "warning"; // تحذير بدل خطأ
+                    if (ticket.status === 'Attended') {
+                        title = "تذكرة صالحة ومستعملة";
+                        const timeStr = ticket.arrival_time ? new Date(ticket.arrival_time).toLocaleString('ar-SA') : 'غير مسجل';
+                        details = `الضيف: <strong>${ticket.guest_name}</strong><br>تاريخ الدخول المسجل: ${timeStr}`;
+                        type = "warning";
                         sound = usedSound;
                     } else {
-                        title = "فشل العملية";
-                        details = result.message || "حدث خطأ غير معروف";
+                        title = "تذكرة صالحة وغير مستعملة";
+                        details = `الضيف: <strong>${ticket.guest_name}</strong><br>التذكرة جاهزة ومعتمدة لتسجيل الدخول.`;
+                        type = "success";
+                        sound = infoSound;
                     }
                 }
 
-                // 3. عرض النتيجة النهائية وتشغيل الصوت
                 showModalResult(type, title, details);
                 playSound(sound);
 
-            } catch (error) {
-                showModalResult("error", "خطأ اتصال", "تأكد من الانترنت وحاول مرة أخرى.");
+            } catch (err) {
+                showModalResult("error", "خطأ اتصال بالشبكة", "تعذر التحقق بسبب انقطاع الاتصال بخادم قاعدة البيانات.");
                 playSound(errorSound);
             }
-            // ملاحظة: لن نقوم بإعادة تفعيل المسح (processingQrCode = false) هنا تلقائياً
-            // لأن المستخدم يجب أن يضغط "مسح التالي" في المودال لإغلاقه والمتابعة.
         }
 
-        // --- البحث اليدوي ---
-        function toggleManualLookup() {
+        toggleModeButton.addEventListener('click', () => {
+            unlockAudio();
+            currentOperationMode = (currentOperationMode === 'scan') ? 'check' : 'scan';
+            document.getElementById('modeText').innerText = currentOperationMode === 'scan' ? "الوضع الحالي: مسح للدخول" : "الوضع الحالي: تحقق من الصلاحية";
+            toggleModeButton.style.borderColor = currentOperationMode === 'scan' ? 'var(--glass-border)' : 'var(--warning)';
+        });
+
+        startScanButton.addEventListener('click', startCamera);
+        stopScanButton.addEventListener('click', stopCamera);
+
+        showLookupButton.addEventListener('click', () => {
             const el = document.getElementById('manualTicketLookup');
             el.style.display = (el.style.display === 'block') ? 'none' : 'block';
             if(el.style.display === 'block') { stopCamera(); manualTicketIdInput.focus(); }
-        }
-        showLookupButton.addEventListener('click', toggleManualLookup);
+        });
 
         manualLookupButton.addEventListener('click', () => {
             const val = manualTicketIdInput.value.trim();
-            if (val) processScannedCode(val, 'manual');
+            if (val) processScannedCode(val);
         });
 
-        // تشغيل أولي
-        updateModeButtonVisuals();
+        // تشغيل فحص أولي عند تحميل الصفحة
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (!eventSlug) {
+                // إخفاء عناصر المسح الأساسية لمنع حدوث أخطاء
+                document.getElementById('video-wrapper').style.display = 'none';
+                document.querySelector('.controls-grid').style.display = 'none';
+                document.querySelector('.mode-switch-container').style.display = 'none';
+                document.querySelector('.subtitle').innerText = "لم يتم تحديد فعالية نشطة";
+                
+                // عرض شاشة اختيار الفعالية بدلاً منها
+                document.getElementById('eventSelectionScreen').style.display = 'block';
+                await loadEventsForSelection();
+            } else {
+                updateModeButtonVisuals();
+                document.querySelector('.subtitle').innerText = "الفعالية النشطة: " + eventSlug;
+            }
+        });
 
+        // دالة سحب الفعاليات لعرضها في شاشة الاختيار
+        async function loadEventsForSelection() {
+            const container = document.getElementById('eventsListContainer');
+            try {
+                const { data, error } = await supa
+                    .from('events')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                
+                if (data.length === 0) {
+                    container.innerHTML = '<div style="color:#ef4444; padding:15px;">لا توجد فعاليات مسجلة بالنظام حالياً. قم بإنشاء فعالية جديدة من لوحة المدير للبدء.</div>';
+                    return;
+                }
+
+                container.innerHTML = '';
+                data.forEach(ev => {
+                    const btn = document.createElement('button');
+                    btn.style.cssText = `
+                        width: 100%;
+                        padding: 14px;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid var(--glass-border);
+                        border-radius: 12px;
+                        color: white;
+                        text-align: right;
+                        font-family: inherit;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: 0.2s;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    `;
+                    btn.innerHTML = `
+                        <span>${ev.title}</span>
+                        <span style="font-size:0.85rem; color:var(--secondary); font-family:monospace;">دخول &larr;</span>
+                    `;
+                    btn.onmouseover = () => btn.style.background = 'rgba(255,255,255,0.1)';
+                    btn.onmouseout = () => btn.style.background = 'rgba(255,255,255,0.05)';
+                    btn.onclick = () => {
+                        window.location.search = `?event=${ev.slug}`;
+                    };
+                    container.appendChild(btn);
+                });
+            } catch (e) {
+                container.innerHTML = `<div style="color:#ef4444; padding:15px;">حدث خطأ أثناء تحميل الفعاليات. تأكد من اتصال الإنترنت.</div>`;
+                console.error(e);
+            }
+        }
+
+        function updateModeButtonVisuals() {
+            // تحديث تصميم الزر الداخلي عند التشغيل العادي
+            const modeText = document.getElementById('modeText');
+            if (currentOperationMode === 'scan') {
+                modeText.innerText = "الوضع الحالي: مسح للدخول";
+                toggleModeButton.style.borderColor = 'var(--glass-border)';
+            } else {
+                modeText.innerText = "الوضع الحالي: تحقق من الصلاحية";
+                toggleModeButton.style.borderColor = 'var(--warning)';
+            }
+        }
     </script>
 </body>
 </html>
-

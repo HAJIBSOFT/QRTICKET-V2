@@ -1,11 +1,15 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HAJIB | تقارير احترافية</title>
+    <title>HAJIB | تقارير الفعالية</title>
     
+    <!-- مكتبة Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -22,143 +26,48 @@
             --border: rgba(255, 255, 255, 0.05);
         }
 
-        /* منع التحرك لليمين واليسار نهائياً */
         html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            overflow-x: hidden; /* منع التمرير الأفقي للجسم */
-            font-family: 'Tajawal', sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            line-height: 1.6;
+            margin: 0; padding: 0; width: 100%; overflow-x: hidden;
+            font-family: 'Tajawal', sans-serif; background-color: var(--bg-body); color: var(--text-main); line-height: 1.6;
         }
 
-        * { 
-            box-sizing: border-box; 
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        .dashboard-container {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px 15px;
-        }
+        .dashboard-container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 20px 15px; }
 
-        /* Header */
-        .header-section {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        @media (min-width: 768px) {
-            .header-section { flex-direction: row; justify-content: space-between; text-align: right; }
-        }
+        .header-section { display: flex; flex-direction: column; gap: 20px; margin-bottom: 30px; text-align: center; }
+        @media (min-width: 768px) { .header-section { flex-direction: row; justify-content: space-between; text-align: right; } }
 
         .header-section h1 { font-size: 1.5rem; font-weight: 800; background: linear-gradient(to left, #6366f1, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        
-        .header-btns { 
-            display: flex; 
-            gap: 10px; 
-            width: 100%; 
-        }
+        .header-btns { display: flex; gap: 10px; width: 100%; }
         @media (min-width: 768px) { .header-btns { width: auto; } }
 
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 30px;
-        }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 30px; }
         @media (min-width: 992px) { .stats-grid { grid-template-columns: repeat(4, 1fr); gap: 20px; } }
 
-        .stat-card {
-            background: var(--bg-panel);
-            padding: 20px;
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            text-align: center;
-        }
+        .stat-card { background: var(--bg-panel); padding: 20px; border-radius: 16px; border: 1px solid var(--border); text-align: center; }
         .stat-card .label { color: var(--text-muted); font-size: 0.85rem; display: block; margin-bottom: 5px; }
         .stat-card .value { font-size: 1.6rem; font-weight: 800; }
 
-        /* Charts Row - Single Chart Now */
-        .charts-row {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 30px;
-        }
-
-        .chart-box {
-            background: var(--bg-panel);
-            padding: 20px;
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            width: 100%;
-            max-width: 500px; /* جعل الرسم البياني بحجم معقول */
-            min-height: 320px;
-        }
+        .charts-row { display: flex; justify-content: center; margin-bottom: 30px; }
+        .chart-box { background: var(--bg-panel); padding: 20px; border-radius: 16px; border: 1px solid var(--border); width: 100%; max-width: 500px; min-height: 320px; }
         .chart-box h3 { margin-bottom: 20px; font-size: 1rem; text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
 
-        /* Table Panel */
-        .report-panel {
-            background: var(--bg-panel);
-            border-radius: 16px;
-            border: 1px solid var(--border);
-            overflow: hidden; /* لضمان عدم خروج الجدول عن الحواف */
-        }
-        .panel-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
+        .report-panel { background: var(--bg-panel); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; }
+        .panel-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; }
         @media (min-width: 768px) { .panel-header { flex-direction: row; justify-content: space-between; } }
 
-        .filters { 
-            display: flex; 
-            gap: 8px; 
-            overflow-x: auto;
-            scrollbar-width: none;
-            padding-bottom: 5px;
-        }
+        .filters { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 5px; }
         .filters::-webkit-scrollbar { display: none; }
-
-        .filter-btn {
-            white-space: nowrap;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid var(--border);
-            color: white;
-            padding: 6px 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
+        .filter-btn { white-space: nowrap; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: white; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
         .filter-btn.active { background: var(--primary); }
 
-        /* التحكم في تمرير الجدول فقط داخل حاويته */
-        .table-res { 
-            width: 100%;
-            overflow-x: auto; 
-            -webkit-overflow-scrolling: touch;
-        }
+        .table-res { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; min-width: 500px; } 
         th { background: rgba(0,0,0,0.2); padding: 12px 15px; text-align: right; color: var(--text-muted); font-size: 0.8rem; }
         td { padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
 
-        .btn-action {
-            flex: 1;
-            justify-content: center;
-            background: var(--primary);
-            color: white; border: none; padding: 12px; border-radius: 12px;
-            cursor: pointer; font-family: inherit; font-weight: 600;
-            display: flex; align-items: center; gap: 8px; font-size: 0.9rem;
-        }
+        .btn-action { flex: 1; justify-content: center; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 12px; cursor: pointer; font-family: inherit; font-weight: 600; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
 
         #print-only { display: none; }
 
@@ -173,11 +82,10 @@
 <body>
 
     <div class="dashboard-container">
-        <!-- Header -->
         <header class="header-section">
             <div>
-                <h1><i class="fas fa-chart-pie"></i> التقارير</h1>
-                <p style="color: var(--text-muted); font-size: 0.85rem;">تقرير حضور المناسبة اللحظي</p>
+                <h1 id="reportHeaderTitle"><i class="fas fa-chart-pie"></i> التقارير</h1>
+                <p id="subTitle" style="color: var(--text-muted); font-size: 0.85rem;">تقرير حضور المناسبة اللحظي</p>
             </div>
             <div class="header-btns">
                 <button class="btn-action" onclick="loadData()"><i class="fas fa-sync-alt"></i> تحديث</button>
@@ -185,7 +93,6 @@
             </div>
         </header>
 
-        <!-- Stats -->
         <div class="stats-grid">
             <div class="stat-card">
                 <span class="label">إجمالي المدعوين</span>
@@ -205,7 +112,6 @@
             </div>
         </div>
 
-        <!-- Charts - Removed Bar Chart -->
         <div class="charts-row">
             <div class="chart-box">
                 <h3>ملخص حالة الحضور</h3>
@@ -215,7 +121,6 @@
             </div>
         </div>
 
-        <!-- Table -->
         <div class="report-panel">
             <div class="panel-header">
                 <h3>السجل التفصيلي</h3>
@@ -227,22 +132,15 @@
             </div>
             <div class="table-res">
                 <table id="main-table">
-                    <thead>
-                        <tr>
-                            <th>الاسم</th>
-                            <th>الحالة</th>
-                            <th>الوقت</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>الاسم</th><th>الحالة</th><th>الوقت</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    <!-- الطباعة -->
     <div id="print-only">
-        <h2 style="text-align:center">تقرير حضور المناسبة</h2>
+        <h2 style="text-align:center" id="printReportTitle">تقرير حضور المناسبة</h2>
         <hr>
         <div id="print-summary" style="margin: 20px 0; font-weight: bold;"></div>
         <table class="print-table" id="p-table">
@@ -252,35 +150,67 @@
     </div>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzcJyxjZ4DcOKkboUYvDOrkWs5PVsKScetEzEvSXwzIL3sFGb0JHHVpTzZRksiaBJsW/exec';
+        // إعداد وتوصيل مكتبة Supabase بالتعديل الجديد
+        const SUPABASE_URL = 'https://bigisnpdoqxmpjwpbncv.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'sb_publishable_6ZtAL8lRYdreWg4Xhn6zLA_7-PwGvPJ'; 
+        const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventSlug = urlParams.get('event');
+
         let allData = [];
         let pieChart;
 
         async function loadData() {
-            try {
-                const formData = new FormData();
-                formData.append('action', 'getDetailedReport');
-                const res = await fetch(API_URL, { method: 'POST', body: formData });
-                const data = await res.json();
+            if (!eventSlug) {
+                alert("الرجاء توفير معامِل الفعالية ?event=slug في الرابط");
+                return;
+            }
 
-                if (data.success) {
-                    allData = [
-                        ...data.attendedGuests.map(g => ({...g, status: 'attended'})),
-                        ...data.notAttendedGuests.map(g => ({...g, status: 'absent', arrivalTime: '-'}))
-                    ];
-                    updateStats(data);
-                    renderTable(allData);
-                    renderPieChart(data.attendedCount, data.notAttendedCount);
-                    preparePrint(data);
-                }
-            } catch (e) { alert("حدث خطأ أثناء تحميل البيانات"); }
+            try {
+                // سحب اسم الفعالية باستخدام supa
+                const { data: eventData } = await supa
+                    .from('events')
+                    .select('title')
+                    .eq('slug', eventSlug)
+                    .single();
+
+                const eventTitle = eventData ? eventData.title : eventSlug;
+                document.getElementById('reportHeaderTitle').innerHTML = `<i class="fas fa-chart-pie"></i> تقرير: ${eventTitle}`;
+                document.getElementById('printReportTitle').innerText = `تقرير حضور: ${eventTitle}`;
+
+                // سحب التذاكر باستخدام supa
+                const { data: tickets, error } = await supa
+                    .from('tickets')
+                    .select('*')
+                    .eq('event_slug', eventSlug)
+                    .order('guest_name', { ascending: true });
+
+                if (error) throw error;
+
+                allData = tickets.map(t => ({
+                    name: t.guest_name,
+                    status: t.status === 'Attended' ? 'attended' : 'absent',
+                    arrivalTime: t.arrival_time ? new Date(t.arrival_time).toLocaleTimeString('ar-SA') : '-'
+                }));
+
+                const totalCount = allData.length;
+                const attendedCount = allData.filter(t => t.status === 'attended').length;
+                const absentCount = totalCount - attendedCount;
+
+                updateStats(totalCount, attendedCount, absentCount);
+                renderTable(allData);
+                renderPieChart(attendedCount, absentCount);
+                preparePrint(totalCount, attendedCount, absentCount);
+
+            } catch (e) { alert("حدث خطأ أثناء تحميل البيانات: " + e.message); }
         }
 
-        function updateStats(data) {
-            document.getElementById('stat-total').innerText = data.totalInvited;
-            document.getElementById('stat-attended').innerText = data.attendedCount;
-            document.getElementById('stat-absent').innerText = data.notAttendedCount;
-            document.getElementById('stat-rate').innerText = ((data.attendedCount / data.totalInvited) * 100).toFixed(1) + "%";
+        function updateStats(total, attended, absent) {
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-attended').innerText = attended;
+            document.getElementById('stat-absent').innerText = absent;
+            document.getElementById('stat-rate').innerText = total > 0 ? ((attended / total) * 100).toFixed(1) + "%" : "0%";
         }
 
         function renderTable(list) {
@@ -323,9 +253,10 @@
             });
         }
 
-        function preparePrint(data) {
+        function preparePrint(total, attended, absent) {
+            const rate = total > 0 ? ((attended / total) * 100).toFixed(1) : 0;
             document.getElementById('print-summary').innerText = 
-                `إجمالي المدعوين: ${data.totalInvited} | عدد الحضور: ${data.attendedCount} | نسبة الحضور: ${((data.attendedCount/data.totalInvited)*100).toFixed(1)}%`;
+                `إجمالي المدعوين: ${total} | عدد الحضور: ${attended} | نسبة الحضور: ${rate}%`;
             const pt = document.querySelector('#p-table tbody');
             pt.innerHTML = allData.map(g => `
                 <tr>

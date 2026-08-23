@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -5,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HAJIB | لوحة الإدارة</title>
     
+    <!-- مكتبة Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- مكتبة QR -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     
@@ -51,7 +54,7 @@
             height: 100vh;
             z-index: 999;
             transition: transform 0.3s ease;
-            right: 0; /* للغة العربية */
+            right: 0;
         }
 
         .logo-area {
@@ -103,7 +106,6 @@
             transition: margin 0.3s ease;
         }
 
-        /* زر القائمة للموبايل */
         .mobile-header {
             display: none;
             margin-bottom: 20px;
@@ -197,14 +199,12 @@
             padding: 12px; border-radius: 10px; color: white; font-family: inherit; margin-bottom: 15px;
         }
 
-        /* --- Overlay for Mobile --- */
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); z-index: 998;
             display: none;
         }
 
-        /* --- Print Container (Hidden normally) --- */
         #print-container {
             display: none;
             background: white;
@@ -212,9 +212,8 @@
             padding: 20px;
         }
 
-        /* --- Responsive --- */
         @media (max-width: 768px) {
-            .sidebar { transform: translateX(100%); width: 280px; } /* مخفية لليمين */
+            .sidebar { transform: translateX(100%); width: 280px; }
             .sidebar.active { transform: translateX(0); }
             .main-content { margin-right: 0; width: 100%; padding: 20px; }
             .mobile-header { display: flex; }
@@ -223,34 +222,15 @@
             .btn { width: 100%; justify-content: center; }
         }
 
-        /* --- Print Styles --- */
         @media print {
             body { background: white; color: black; overflow: visible; }
             .sidebar, .main-content, .overlay, .mobile-header, .btn, .no-print { display: none !important; }
-            
-            #print-container { 
-                display: block !important; 
-                position: absolute; top: 0; left: 0; width: 100%; 
-            }
-            
-            /* تنسيق طباعة الباركودات (Grid) */
-            .print-grid {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 15px;
-            }
-            .print-ticket {
-                border: 2px dashed #333;
-                padding: 10px;
-                text-align: center;
-                border-radius: 8px;
-                page-break-inside: avoid;
-            }
+            #print-container { display: block !important; position: absolute; top: 0; left: 0; width: 100%; }
+            .print-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+            .print-ticket { border: 2px dashed #333; padding: 10px; text-align: center; border-radius: 8px; page-break-inside: avoid; }
             .print-ticket img { max-width: 100px; display: block; margin: 0 auto 5px; }
             .print-ticket h3 { font-size: 14px; margin: 5px 0; }
             .print-ticket p { font-size: 12px; color: #555; margin: 0; }
-
-            /* تنسيق طباعة التقارير (Table) */
             .print-table { width: 100%; border-collapse: collapse; }
             .print-table th, .print-table td { border: 1px solid #000; padding: 8px; text-align: right; color: black; }
             .print-header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
@@ -288,7 +268,11 @@
         <section id="dashboard" class="section-view active">
             <div class="header-top">
                 <h1 class="page-title">لوحة المعلومات</h1>
-                <button class="btn btn-secondary" onclick="loadData()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <label style="margin: 0; font-weight: bold;">الفعالية النشطة:</label>
+                    <select id="eventSelectHeader" class="form-control" style="width: 200px; margin:0;" onchange="setActiveEvent(this.value)"></select>
+                    <button class="btn btn-secondary" onclick="loadData()"><i class="fas fa-sync-alt"></i> تحديث</button>
+                </div>
             </div>
 
             <div class="stats-grid">
@@ -306,6 +290,36 @@
                     <h3 style="color: var(--danger);">لم يحضروا</h3>
                     <div class="value" id="stat-pending">0</div>
                     <i class="fas fa-clock icon-bg" style="color: var(--danger);"></i>
+                </div>
+            </div>
+
+            <!-- الخانة الجديدة: روابط الفعالية النشطة لتفادي مشكلة النسيان -->
+            <div class="panel" style="border: 1px solid var(--primary); background: rgba(99, 102, 241, 0.05); margin-bottom: 25px;">
+                <div class="panel-header" style="border-bottom: 1px solid rgba(99, 102, 241, 0.15);">
+                    <h4><i class="fas fa-link"></i> روابط الفعالية النشطة (<span id="active-event-name-display" style="color: var(--primary);">...</span>)</h4>
+                </div>
+                <div style="padding: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;">
+                    <div style="background: rgba(0,0,0,0.25); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
+                        <div style="font-weight: bold; margin-bottom: 8px; font-size: 0.9rem;"><i class="fas fa-camera"></i> رابط كاميرا المسح</div>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="link-scanner" class="form-control" readonly style="margin:0; font-size: 0.8rem; font-family: monospace; background: rgba(0,0,0,0.5);">
+                            <button class="btn btn-primary" onclick="copyEventLink('link-scanner')" style="padding: 10px 15px;"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.25); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
+                        <div style="font-weight: bold; margin-bottom: 8px; font-size: 0.9rem;"><i class="fas fa-paint-brush"></i> رابط مصمم الدعوات</div>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="link-designer" class="form-control" readonly style="margin:0; font-size: 0.8rem; font-family: monospace; background: rgba(0,0,0,0.5);">
+                            <button class="btn btn-primary" onclick="copyEventLink('link-designer')" style="padding: 10px 15px;"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
+                    <div style="background: rgba(0,0,0,0.25); padding: 15px; border-radius: 10px; border: 1px solid var(--border);">
+                        <div style="font-weight: bold; margin-bottom: 8px; font-size: 0.9rem;"><i class="fas fa-chart-pie"></i> رابط التقارير اللحظية</div>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="link-reports" class="form-control" readonly style="margin:0; font-size: 0.8rem; font-family: monospace; background: rgba(0,0,0,0.5);">
+                            <button class="btn btn-primary" onclick="copyEventLink('link-reports')" style="padding: 10px 15px;"><i class="fas fa-copy"></i></button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -348,9 +362,19 @@
         <section id="generate" class="section-view">
             <div class="header-top"><h1 class="page-title">إصدار دعوات جديدة</h1></div>
             <div class="panel" style="padding: 25px;">
-                <label>عنوان المناسبة</label>
-                <input type="text" id="eventTitle" class="form-control" placeholder="مثال: حفل الزواج">
-                <label>أسماء الضيوف (كل اسم في سطر)</label>
+                <label style="font-weight: bold; display: block; margin-bottom: 5px;">الحفل أو المناسبة النشطة</label>
+                <select id="eventSelectGenerate" class="form-control" style="margin-bottom: 20px;"></select>
+
+                <div style="border-top: 1px solid var(--border); padding-top: 15px; margin-top: 15px; margin-bottom: 20px;">
+                    <label style="font-weight: bold; color: var(--primary); display: block; margin-bottom: 5px;">أو إنشاء فعالية جديدة تماماً:</label>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
+                        <input type="text" id="newEventSlug" class="form-control" style="flex: 1; min-width: 150px; margin:0;" placeholder="رابط فريد بالإنجليزية (مثال: ahmad-wedding)">
+                        <input type="text" id="newEventTitle" class="form-control" style="flex: 2; min-width: 200px; margin:0;" placeholder="اسم المناسبة بالكامل باللغة العربية">
+                        <button class="btn btn-secondary" type="button" onclick="createNewEvent()">إنشاء الفعالية</button>
+                    </div>
+                </div>
+
+                <label>أسماء الضيوف (كل اسم في سطر منفصل)</label>
                 <textarea id="newGuestNames" class="form-control" style="min-height: 120px;" placeholder="محمد أحمد&#10;علي خالد"></textarea>
                 <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="generateTickets()">
                     <i class="fas fa-plus-circle"></i> إنشاء وإضافة
@@ -377,55 +401,137 @@
 
     </main>
 
-    <!-- Hidden Print Container -->
     <div id="print-container"></div>
-    <!-- Helper Div for download image -->
     <div id="tempQR" style="display:none;"></div>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbzcJyxjZ4DcOKkboUYvDOrkWs5PVsKScetEzEvSXwzIL3sFGb0JHHVpTzZRksiaBJsW/exec'; 
+        const SUPABASE_URL = 'https://bigisnpdoqxmpjwpbncv.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'sb_publishable_6ZtAL8lRYdreWg4Xhn6zLA_7-PwGvPJ'; 
+        const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         const TICKET_BASE_URL = 'https://hajibsoft.github.io/QRTICKET-V2/PublicTicketView.html';
+        
         let allGuestsData = [];
+        let activeEventSlug = "";
+        let eventsList = [];
 
-        // --- Sidebar Logic ---
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('overlay');
-            sidebar.classList.toggle('active');
-            overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+        async function init() {
+            await loadEvents();
+            await loadData();
         }
 
-        function switchTab(tabId, btn) {
-            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-            if(btn) btn.classList.add('active');
-            if(window.innerWidth <= 768) toggleSidebar(); // Close on mobile click
+        async function loadEvents() {
+            try {
+                const { data, error } = await supa.from('events').select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                eventsList = data;
+                
+                const headerSelect = document.getElementById('eventSelectHeader');
+                const generateSelect = document.getElementById('eventSelectGenerate');
+                
+                headerSelect.innerHTML = '';
+                generateSelect.innerHTML = '';
+                
+                if (data.length === 0) {
+                    headerSelect.innerHTML = '<option value="">لا توجد فعاليات مسجلة</option>';
+                    generateSelect.innerHTML = '<option value="">لا توجد فعاليات مسجلة</option>';
+                    return;
+                }
+
+                data.forEach(ev => {
+                    const opt1 = document.createElement('option');
+                    opt1.value = ev.slug; opt1.innerText = ev.title;
+                    headerSelect.appendChild(opt1);
+
+                    const opt2 = document.createElement('option');
+                    opt2.value = ev.slug; opt2.innerText = ev.title;
+                    generateSelect.appendChild(opt2);
+                });
+
+                if (!activeEventSlug && data.length > 0) {
+                    activeEventSlug = data[0].slug;
+                }
+                headerSelect.value = activeEventSlug;
+                generateSelect.value = activeEventSlug;
+
+                // تحديث قائمة الروابط تلقائياً
+                updateEventLinks();
+            } catch(e) { console.error("Error loading events", e); }
         }
 
-        // --- Data Loading ---
+        async function setActiveEvent(slug) {
+            activeEventSlug = slug;
+            document.getElementById('eventSelectHeader').value = slug;
+            document.getElementById('eventSelectGenerate').value = slug;
+            updateEventLinks();
+            await loadData();
+        }
+
+        // دالة إنشاء وتحديث الروابط في لوحة المدير
+        function updateEventLinks() {
+            const currentEvent = eventsList.find(e => e.slug === activeEventSlug);
+            if (currentEvent) {
+                document.getElementById('active-event-name-display').innerText = currentEvent.title;
+                const base = "https://hajibsoft.github.io/QRTICKET-V2/";
+                document.getElementById('link-scanner').value = `${base}index.html?event=${activeEventSlug}`;
+                document.getElementById('link-designer').value = `${base}designer.html?event=${activeEventSlug}`;
+                document.getElementById('link-reports').value = `${base}Reports.html?event=${activeEventSlug}`;
+            }
+        }
+
+        // دالة لنسخ الرابط
+        function copyEventLink(id) {
+            const val = document.getElementById(id).value;
+            navigator.clipboard.writeText(val).then(() => {
+                alert("تم نسخ الرابط بنجاح!");
+            });
+        }
+
+        async function createNewEvent() {
+            const slug = document.getElementById('newEventSlug').value.trim().toLowerCase();
+            const title = document.getElementById('newEventTitle').value.trim();
+            if (!slug || !title) return alert("الرجاء إدخال اسم المناسبة ورمز الرابط بالإنجليزية");
+            
+            try {
+                const { error } = await supa.from('events').insert([{ slug, title }]);
+                if (error) throw error;
+                alert("تم إنشاء الفعالية بنجاح");
+                document.getElementById('newEventSlug').value = '';
+                document.getElementById('newEventTitle').value = '';
+                activeEventSlug = slug;
+                await init();
+            } catch(e) { alert("حدث خطأ أثناء الإنشاء، قد يكون الرابط بالإنجليزية مسجل مسبقاً"); }
+        }
+
         async function loadData() {
+            if (!activeEventSlug) return;
             const tbody = document.querySelector('#all-guests-table tbody');
             tbody.innerHTML = '<tr><td colspan="4" style="text-align:center">جاري التحديث...</td></tr>';
             
             try {
-                const formData = new FormData();
-                formData.append('action', 'getDetailedReport');
-                const res = await fetch(API_URL, { method: 'POST', body: formData });
-                const data = await res.json();
+                const { data, error } = await supa
+                    .from('tickets')
+                    .select('*')
+                    .eq('event_slug', activeEventSlug)
+                    .order('created_at', { ascending: false });
 
-                if (data.success) {
-                    allGuestsData = [
-                        ...data.attendedGuests.map(g => ({...g, status: 'attended'})),
-                        ...data.notAttendedGuests.map(g => ({...g, status: 'pending', arrivalTime: '-'}))
-                    ];
-                    
-                    document.getElementById('stat-total').innerText = data.totalInvited;
-                    document.getElementById('stat-attended').innerText = data.attendedCount;
-                    document.getElementById('stat-pending').innerText = data.notAttendedCount;
-                    renderTables();
-                }
-            } catch (err) { alert("خطأ في الاتصال"); }
+                if (error) throw error;
+
+                allGuestsData = data.map(g => ({
+                    id: g.id,
+                    name: g.guest_name,
+                    status: g.status === 'Attended' ? 'attended' : 'pending',
+                    arrivalTime: g.arrival_time ? new Date(g.arrival_time).toLocaleTimeString('ar-SA') : '-',
+                    qrCode: g.id
+                }));
+
+                const attendedCount = allGuestsData.filter(g => g.status === 'attended').length;
+                document.getElementById('stat-total').innerText = allGuestsData.length;
+                document.getElementById('stat-attended').innerText = attendedCount;
+                document.getElementById('stat-pending').innerText = allGuestsData.length - attendedCount;
+                
+                renderTables();
+            } catch (err) { alert("خطأ في جلب البيانات من Supabase: " + err.message); }
         }
 
         function renderTables() {
@@ -433,7 +539,7 @@
             tbody.innerHTML = '';
             
             allGuestsData.forEach(guest => {
-                const link = `${TICKET_BASE_URL}?qrData=${encodeURIComponent(guest.qrCode)}`;
+                const link = `${TICKET_BASE_URL}?event=${activeEventSlug}&qrData=${encodeURIComponent(guest.qrCode)}`;
                 const statusHtml = guest.status === 'attended' 
                     ? '<span style="color:var(--success)">حاضر</span>' 
                     : '<span style="color:var(--text-muted)">لم يحضر</span>';
@@ -442,23 +548,22 @@
                     <tr>
                         <td style="font-weight:bold">${guest.name}</td>
                         <td>${statusHtml}</td>
-                        <td style="font-family:monospace">${guest.qrCode}</td>
+                        <td style="font-family:monospace; font-size: 0.8rem;">${guest.qrCode}</td>
                         <td>
-                            <button class="btn-icon action-whatsapp" onclick="shareWhatsapp('${guest.name}', '${link}')"><i class="fab fa-whatsapp"></i></button>
-                            <button class="btn-icon action-copy" onclick="copyLink('${link}')"><i class="fas fa-copy"></i></button>
-                            <button class="btn-icon action-download" onclick="downloadQR('${guest.qrCode}', '${guest.name}')"><i class="fas fa-download"></i></button>
+                            <button class="btn-icon action-whatsapp" onclick="shareWhatsapp('${guest.name}', '${link}')" title="واتساب"><i class="fab fa-whatsapp"></i></button>
+                            <button class="btn-icon action-copy" onclick="copyLink('${link}')" title="نسخ الرابط"><i class="fas fa-copy"></i></button>
+                            <button class="btn-icon action-download" onclick="downloadQR('${guest.qrCode}', '${guest.name}')" title="تحميل"><i class="fas fa-download"></i></button>
+                            <button class="btn-icon" style="background: var(--danger)" onclick="deleteTicket('${guest.id}')" title="حذف التذكرة"><i class="fas fa-trash"></i></button>
                         </td>
                     </tr>`;
             });
 
-            // Report Table
             const reportBody = document.querySelector('#report-table tbody');
             reportBody.innerHTML = '';
             allGuestsData.forEach(g => {
                 reportBody.innerHTML += `<tr><td>${g.name}</td><td>${g.status === 'attended'?'حاضر':'غائب'}</td><td>${g.arrivalTime}</td></tr>`;
             });
             
-            // Recent
             const recentBody = document.querySelector('#recent-scans-table tbody');
             const recent = allGuestsData.filter(g => g.status === 'attended').slice(0, 5);
             recentBody.innerHTML = recent.length ? '' : '<tr><td colspan="3" style="text-align:center">لا يوجد حضور بعد</td></tr>';
@@ -467,38 +572,57 @@
             });
         }
 
-        // --- Generate ---
         async function generateTickets() {
+            const eventSelect = document.getElementById('eventSelectGenerate').value;
+            if (!eventSelect) return alert("يرجى تحديد أو إنشاء فعالية أولاً");
+
             const names = document.getElementById('newGuestNames').value;
-            if(!names.trim()) return alert("أدخل الأسماء");
+            if (!names.trim()) return alert("أدخل الأسماء");
             
-            if(!confirm("هل أنت متأكد من إنشاء تذاكر لهذه الأسماء؟")) return;
+            if (!confirm("هل أنت متأكد من إنشاء تذاكر لهذه الأسماء؟")) return;
 
             const btn = document.querySelector('#generate .btn-primary');
             btn.innerHTML = 'جاري الإنشاء...'; btn.disabled = true;
 
             try {
-                const formData = new FormData();
-                formData.append('action', 'generateTicketsBatch');
-                formData.append('guestNamesList', names);
-                await fetch(API_URL, { method: 'POST', body: formData });
-                alert("تم الإنشاء بنجاح");
+                const namesArray = names.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+                const recordsToInsert = namesArray.map(name => ({
+                    event_slug: eventSelect,
+                    guest_name: name,
+                    status: 'Valid'
+                }));
+
+                const { error } = await supa.from('tickets').insert(recordsToInsert);
+                if (error) throw error;
+
+                alert("تم إنشاء وإضافة التذاكر بنجاح");
                 document.getElementById('newGuestNames').value = '';
-                loadData();
+                await setActiveEvent(eventSelect);
                 switchTab('guests');
-            } catch(e) { alert("حدث خطأ"); }
+            } catch(e) { alert("حدث خطأ أثناء حفظ البيانات: " + e.message); }
+            
             btn.innerHTML = '<i class="fas fa-plus-circle"></i> إنشاء وإضافة'; btn.disabled = false;
         }
 
-        // --- Helper Actions ---
-        function shareWhatsapp(n, l) { window.open(`https://wa.me/?text=مرحباً ${n}، تذكرتك: ${encodeURIComponent(l)}`, '_blank'); }
+        async function deleteTicket(id) {
+            if (!confirm("هل أنت متأكد من حذف هذه التذكرة نهائياً؟")) return;
+            try {
+                const { error } = await supa.from('tickets').delete().eq('id', id);
+                if (error) throw error;
+                await loadData();
+            } catch(e) { alert("فشل الحذف من قاعدة البيانات: " + e.message); }
+        }
+
+        function shareWhatsapp(n, l) { window.open(`https://wa.me/?text=مرحباً ${n}، تذكرتك الرقمية جاهزة للحفل: ${encodeURIComponent(l)}`, '_blank'); }
         function copyLink(l) { navigator.clipboard.writeText(l).then(()=>alert("تم النسخ")); }
+        
         function filterGuests() {
             const val = document.getElementById('searchGuest').value.toLowerCase();
             document.querySelectorAll('#all-guests-table tbody tr').forEach(row => {
                 row.style.display = row.cells[0].innerText.toLowerCase().includes(val) ? '' : 'none';
             });
         }
+
         function downloadQR(code, name) {
             const div = document.getElementById('tempQR');
             div.innerHTML = '';
@@ -512,39 +636,45 @@
             }, 500);
         }
 
-        // --- Print Logic (Solved Issues) ---
-        
-        // 1. طباعة الباركودات (صور حقيقية)
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.toggle('active');
+            overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+        }
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+            if(btn) btn.classList.add('active');
+            if(window.innerWidth <= 768) toggleSidebar();
+        }
+
         function preparePrintAllTickets() {
             if(allGuestsData.length === 0) return alert("لا يوجد بيانات");
             const container = document.getElementById('print-container');
             container.innerHTML = '<div class="print-grid"></div>';
             const grid = container.querySelector('.print-grid');
-            const eventName = document.getElementById('eventTitle').value || "بطاقة دعوة";
+            
+            const currentEvent = eventsList.find(e => e.slug === activeEventSlug);
+            const eventName = currentEvent ? currentEvent.title : "بطاقة دعوة";
 
-            // إنشاء العناصر
             allGuestsData.forEach(guest => {
                 const card = document.createElement('div');
                 card.className = 'print-ticket';
-                // div للباركود
                 const qrDiv = document.createElement('div');
                 card.appendChild(qrDiv);
                 
-                // توليد الباركود
                 new QRCode(qrDiv, { text: guest.qrCode, width: 100, height: 100 });
                 
                 card.innerHTML += `<h3>${guest.name}</h3><p>${eventName}</p>`;
                 grid.appendChild(card);
             });
 
-            // *الحل السحري*: الانتظار حتى تقوم المكتبة بتحويل Canvas إلى Image
-            // مكتبة qrcodejs تأخذ وقتاً بسيطاً لإضافة تاج <img>
-            setTimeout(() => {
-                window.print();
-            }, 1000); // انتظار ثانية كاملة لضمان الريندر
+            setTimeout(() => { window.print(); }, 1200);
         }
 
-        // 2. طباعة التقرير (نقل الجدول)
         function preparePrintReport() {
             if(allGuestsData.length === 0) return alert("لا يوجد بيانات");
             const container = document.getElementById('print-container');
@@ -552,22 +682,18 @@
             
             const header = document.createElement('div');
             header.className = 'print-header';
-            header.innerHTML = `<h1>تقرير الحضور</h1><p>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-SA')}</p>`;
+            header.innerHTML = `<h1>تقرير حضور الفعالية</h1><p>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-SA')}</p>`;
             
             const originalTable = document.getElementById('report-table').cloneNode(true);
-            originalTable.className = 'print-table'; // تطبيق ستايل الطباعة
+            originalTable.className = 'print-table';
             
             container.appendChild(header);
             container.appendChild(originalTable);
             
-            setTimeout(() => {
-                window.print();
-            }, 300);
+            setTimeout(() => { window.print(); }, 400);
         }
 
-        // Init
-        window.onload = loadData;
-
+        window.onload = init;
     </script>
 </body>
 </html>

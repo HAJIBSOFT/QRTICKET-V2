@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -5,7 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تذكرة</title>
     
+    <!-- مكتبة Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- مكتبة QR -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Tajawal:wght@400;500;800&display=swap" rel="stylesheet">
@@ -58,7 +63,6 @@
         .st-used .status-indicator { color: var(--st-used); border-color: var(--st-used); }
         .st-invalid .status-indicator { color: var(--st-invalid); border-color: var(--st-invalid); }
 
-        /* تنسيق زر آيفون */
         #appleWalletContainer { display: none; margin-top: 10px; }
         .apple-wallet-button { background: none; border: none; cursor: pointer; transition: transform 0.2s; }
         .apple-wallet-button:active { transform: scale(0.95); }
@@ -80,7 +84,7 @@
         <div class="ticket-card" id="ticketCard">
             <div class="ticket-header">
                 <i class="fas fa-crown logo-icon"></i>
-                <div class="event-title" id="eventTitle">...</div>
+                <div class="event-title" id="eventTitle">دعوة خاصة</div>
             </div>
 
             <div class="ticket-body">
@@ -103,51 +107,77 @@
     </div>
 
     <script>
-        // رابط السكربت الخاص بك لجلب بيانات التذكرة فقط
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzNf9xpB99tioPUwYnjRlmF_3VECNCHfzPnRYbvPpoM8srwxdzlx7Xbezz3VxQ-0onX/exec';
+        // إعداد وتوصيل مكتبة Supabase بالتعديل الجديد
+        const SUPABASE_URL = 'https://bigisnpdoqxmpjwpbncv.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'sb_publishable_6ZtAL8lRYdreWg4Xhn6zLA_7-PwGvPJ'; 
+        const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentTicket = null;
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             const urlParams = new URLSearchParams(window.location.search);
             const qrData = urlParams.get('qrData');
+            const eventSlug = urlParams.get('event');
             
-            if (!qrData) return;
+            if (!qrData || !eventSlug) {
+                document.getElementById('loadingIndicator').innerHTML = '<p style="color:red">عذراً، الرابط غير صحيح أو ناقص المعلمات.</p>';
+                return;
+            }
 
-            // إظهار الزر في الآيفون فقط
             const isIPhone = /iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             if (isIPhone) document.getElementById('appleWalletContainer').style.display = 'block';
 
-            fetch(`${GOOGLE_SCRIPT_URL}?action=getTicketData&qrData=${encodeURIComponent(qrData)}`)
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById('loadingIndicator').style.display = 'none';
-                    if (data.success) {
-                        currentTicket = data;
-                        document.getElementById('ticketContainer').classList.add('visible');
-                        document.getElementById('eventTitle').innerText = data.eventName;
-                        document.getElementById('guestName').innerText = data.guestName;
-                        document.getElementById('ticketIdText').innerText = "ID: " + data.qrData;
-                        new QRCode(document.getElementById('qrcodeDisplay'), { text: data.qrData, width: 140, height: 140 });
-                        updateUI(data.ticketStatus);
-                    }
-                });
+            try {
+                // استخدام supa لسحب التذكرة
+                const { data: ticket, error: tError } = await supa
+                    .from('tickets')
+                    .select('*')
+                    .eq('id', qrData)
+                    .eq('event_slug', eventSlug)
+                    .single();
+
+                if (tError || !ticket) {
+                    throw new Error("تذكرة غير صالحة");
+                }
+
+                // سحب اسم الحفل باستخدام supa
+                const { data: eventData } = await supa
+                    .from('events')
+                    .select('title')
+                    .eq('slug', eventSlug)
+                    .single();
+
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('ticketContainer').classList.add('visible');
+
+                currentTicket = ticket;
+                currentTicket.eventName = eventData ? eventData.title : "دعوة خاصة";
+
+                document.getElementById('eventTitle').innerText = currentTicket.eventName;
+                document.getElementById('guestName').innerText = ticket.guest_name;
+                document.getElementById('ticketIdText').innerText = "ID: " + ticket.id;
+                
+                new QRCode(document.getElementById('qrcodeDisplay'), { text: ticket.id, width: 140, height: 140 });
+                updateUI(ticket.status);
+
+            } catch (e) {
+                document.getElementById('loadingIndicator').innerHTML = `<p style="color:red">حدث خطأ: ${e.message || "التذكرة غير موجودة بالسجلات"}</p>`;
+            }
         });
 
         function updateUI(status) {
             const badge = document.getElementById('statusBadge');
             const card = document.getElementById('ticketCard');
-            status = status.toLowerCase();
-            if (status.includes('valid') || status.includes('صالحة')) {
+            
+            if (status === 'Valid') {
                 card.classList.add('st-valid'); badge.innerText = "تذكرة صالحة";
-            } else if (status.includes('attended')) {
+            } else if (status === 'Attended') {
                 card.classList.add('st-used'); badge.innerText = "تم الحضور";
             } else {
                 card.classList.add('st-invalid'); badge.innerText = "غير صالحة";
             }
         }
 
-        // كود الـ API الخاص بـ WalletWallet مباشرة في الصفحة
         async function addToAppleWallet() {
             if (!currentTicket) return;
             const btn = document.getElementById('walletBtn');
@@ -161,25 +191,25 @@
                         'Authorization': 'Bearer ww_live_d725637056c71ad72de934242e861523'
                     },
                     body: JSON.stringify({
-                        barcodeValue: currentTicket.qrData,
+                        barcodeValue: currentTicket.id,
                         barcodeFormat: "QR",
-                        title: currentTicket.guestName,
+                        title: currentTicket.guest_name,
                         colorPreset: "dark"
                     })
                 });
 
-                if (!response.ok) throw new Error('API Error');
+                if (!response.ok) throw new Error('WalletWallet API Error');
 
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'ticket.pkpass';
+                a.download = `ticket-${currentTicket.guest_name}.pkpass`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
             } catch (e) {
-                alert("حدث خطأ أو قيود أمان (CORS) من المتصفح");
+                alert("تعذر حفظ التذكرة للـ Wallet، يرجى حفظ لقطة شاشة للـ QR كبديل.");
                 console.error(e);
             } finally {
                 btn.style.opacity = "1";
