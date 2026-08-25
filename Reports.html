@@ -230,7 +230,7 @@
             tbody.innerHTML = list.map(g => `
                 <tr>
                     <td style="font-weight:600">${g.name}</td>
-                    <td><span style="color:${g.status==='attended'?'var(--success)':'var(--danger)'}">${g.status==='attended'?'حاضر':'غائب'}</span></td>
+                    <td><span style="color:${g.status==='attended'?'var(--success)':'var(--danger)'}">${g.status==='attended'?'حاضر':'لم يحضر'}</span></td>
                     <td style="color:var(--text-muted)">${g.arrivalTime}</td>
                 </tr>
             `).join('');
@@ -248,7 +248,7 @@
             pieChart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['حاضر', 'غائب'],
+                    labels: ['حاضر', 'لم يحضر'],
                     datasets: [{
                         data: [att, abs],
                         backgroundColor: ['#6366f1', '#ef4444'],
@@ -273,7 +273,7 @@
             pt.innerHTML = allData.map(g => `
                 <tr>
                     <td>${g.name}</td>
-                    <td>${g.status==='attended'?'حاضر':'غائب'}</td>
+                    <td>${g.status==='attended'?'حاضر':'لم يحضر'}</td>
                     <td>${g.arrivalTime}</td>
                 </tr>
             `).join('');
