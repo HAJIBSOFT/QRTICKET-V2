@@ -251,7 +251,9 @@
             <li><button class="nav-btn active" onclick="switchTab('dashboard', this)"><i class="fas fa-home"></i> الرئيسية</button></li>
             <li><button class="nav-btn" onclick="switchTab('guests', this)"><i class="fas fa-users"></i> إدارة المدعوين</button></li>
             <li><button class="nav-btn" onclick="switchTab('generate', this)"><i class="fas fa-magic"></i> إصدار جديد</button></li>
+            <li><button class="nav-btn" id="nav-accounts" style="display:none;" onclick="switchTab('accounts', this)"><i class="fas fa-user-shield"></i> إدارة الحسابات</button></li>
             <li><button class="nav-btn" onclick="switchTab('reports', this)"><i class="fas fa-chart-pie"></i> التقارير</button></li>
+            <li style="margin-top: 30px;"><button class="nav-btn" onclick="logout()" style="color:var(--danger);"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button></li>
         </ul>
     </aside>
 
@@ -380,6 +382,9 @@
                             <input type="text" id="newEventDate" class="form-control" style="flex: 1; min-width: 150px; margin:0;" placeholder="تاريخ الحفل (مثال: الجمعة 15 شعبان)">
                             <input type="text" id="newEventLocation" class="form-control" style="flex: 1; min-width: 150px; margin:0;" placeholder="موقع الحفل / القاعة (مثال: قاعة الفورسيزون)">
                         </div>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="newEventLocUrl" class="form-control" style="width:100%; margin:0;" placeholder="رابط خريطة قاعة الحفل من جوجل مابس (اختياري)">
+                        </div>
                         <button class="btn btn-secondary" style="width: 100%; justify-content: center;" type="button" onclick="createNewEvent()">إنشاء الفعالية الجديدة</button>
                     </div>
                 </div>
@@ -389,6 +394,39 @@
                 <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="generateTickets()">
                     <i class="fas fa-plus-circle"></i> إنشاء وإضافة
                 </button>
+            </div>
+        </section>
+
+        <!-- Accounts Admin View -->
+        <section id="accounts" class="section-view">
+            <div class="header-top"><h1 class="page-title">إدارة حسابات المصممين</h1></div>
+            
+            <!-- إنشاء حساب مصمم جديد -->
+            <div class="panel" style="padding: 25px;">
+                <h4 style="margin-bottom: 15px;"><i class="fas fa-user-plus"></i> إنشاء حساب مصمم جديد</h4>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input type="email" id="newDesignerEmail" class="form-control" style="flex: 1; margin:0;" placeholder="البريد الإلكتروني">
+                    <input type="text" id="newDesignerPassword" class="form-control" style="flex: 1; margin:0;" placeholder="كلمة المرور">
+                    <button class="btn btn-primary" onclick="createDesignerAccount()"><i class="fas fa-plus"></i> إضافة مصمم</button>
+                </div>
+            </div>
+
+            <!-- قائمة المصممين والاشتراكات -->
+            <div class="panel">
+                <div class="panel-header"><h4><i class="fas fa-users-cog"></i> المصممون المشتركون والاشتراكات</h4></div>
+                <div class="table-responsive">
+                    <table id="designers-table">
+                        <thead>
+                            <tr>
+                                <th>البريد الإلكتروني</th>
+                                <th>تاريخ الانضمام</th>
+                                <th>حالة الحساب</th>
+                                <th>إجراءات الإدارة والاشتراكات</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -424,15 +462,45 @@
         let allGuestsData = [];
         let activeEventSlug = "";
         let eventsList = [];
+        let currentUser = null;
+
+        // التحقق من صلاحيات جلسة الدخول
+        function checkAuth() {
+            const userStr = localStorage.getItem('hajibUser');
+            if (!userStr) {
+                window.location.href = 'login.html';
+                return;
+            }
+            currentUser = JSON.parse(userStr);
+            if (currentUser.role === 'admin') {
+                document.getElementById('nav-accounts').style.display = 'block';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('hajibUser');
+            window.location.href = 'login.html';
+        }
 
         async function init() {
+            checkAuth();
             await loadEvents();
             await loadData();
+            if (currentUser.role === 'admin') {
+                await loadDesigners();
+            }
         }
 
         async function loadEvents() {
             try {
-                const { data, error } = await supa.from('events').select('*').order('created_at', { ascending: false });
+                let query = supa.from('events').select('*');
+                
+                // إذا كان المستخدم مصمماً فإنه لا يرى إلا الفعاليات التي قام بإنشائها
+                if (currentUser.role === 'designer') {
+                    query = query.eq('creator_email', currentUser.email);
+                }
+
+                const { data, error } = await query.order('created_at', { ascending: false });
                 if (error) throw error;
                 eventsList = data;
                 
@@ -502,15 +570,17 @@
             const title = document.getElementById('newEventTitle').value.trim();
             const date = document.getElementById('newEventDate').value.trim();
             const loc = document.getElementById('newEventLocation').value.trim();
+            const locUrl = document.getElementById('newEventLocUrl').value.trim();
             if (!slug || !title) return alert("الرجاء إدخال اسم المناسبة ورمز الرابط بالإنجليزية");
             
             try {
-                // حفظ البيانات شاملة الحقول الجديدة للتاريخ والموقع
                 const { error } = await supa.from('events').insert([{ 
                     slug, 
                     title,
                     event_date: date,
-                    location: loc
+                    location: loc,
+                    location_url: locUrl,
+                    creator_email: currentUser.email // ربط المناسبة بالمصمم الذي أنشأها
                 }]);
                 if (error) throw error;
                 alert("تم إنشاء الفعالية بنجاح");
@@ -518,6 +588,7 @@
                 document.getElementById('newEventTitle').value = '';
                 document.getElementById('newEventDate').value = '';
                 document.getElementById('newEventLocation').value = '';
+                document.getElementById('newEventLocUrl').value = '';
                 activeEventSlug = slug;
                 await init();
             } catch(e) { alert("حدث خطأ أثناء الإنشاء، قد يكون الرابط بالإنجليزية مسجل مسبقاً"); }
@@ -633,6 +704,87 @@
             } catch(e) { alert("فشل الحذف من قاعدة البيانات: " + e.message); }
         }
 
+        // ==========================================
+        //  إدارة حسابات المصممين (صلاحيات المدير فقط)
+        // ==========================================
+        async function loadDesigners() {
+            try {
+                const { data, error } = await supa
+                    .from('profiles')
+                    .select('*')
+                    .eq('role', 'designer')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                const tbody = document.querySelector('#designers-table tbody');
+                tbody.innerHTML = '';
+
+                data.forEach(profile => {
+                    const statusText = profile.status === 'active' ? '<span style="color:var(--success)">نشط (مدفوع)</span>' : '<span style="color:var(--danger)">موقوف (غير مدفوع)</span>';
+                    const toggleBtn = profile.status === 'active' 
+                        ? `<button class="btn btn-secondary" style="background:var(--danger); color:white;" onclick="updateDesignerStatus('${profile.id}', 'suspended')"><i class="fas fa-user-slash"></i> إيقاف الاشتراك</button>`
+                        : `<button class="btn btn-primary" onclick="updateDesignerStatus('${profile.id}', 'active')"><i class="fas fa-user-check"></i> تفعيل الاشتراك</button>`;
+
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="font-weight:bold">${profile.email}</td>
+                            <td>${new Date(profile.created_at).toLocaleDateString('ar-SA')}</td>
+                            <td>${statusText}</td>
+                            <td>
+                                ${toggleBtn}
+                                <button class="btn btn-secondary" style="margin-right:5px; background:var(--danger);" onclick="deleteDesignerAccount('${profile.id}')"><i class="fas fa-trash-alt"></i> حذف الحساب</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch(e) { console.error("Error loading designers", e); }
+        }
+
+        async function createDesignerAccount() {
+            const email = document.getElementById('newDesignerEmail').value.trim();
+            const password = document.getElementById('newDesignerPassword').value.trim();
+            if (!email || !password) return alert("الرجاء ملء حقول البريد الإلكتروني وكلمة المرور للمصمم");
+
+            try {
+                const { error } = await supa.from('profiles').insert([{
+                    email,
+                    password,
+                    role: 'designer',
+                    status: 'active'
+                }]);
+
+                if (error) throw error;
+                alert("تم إضافة حساب المصمم بنجاح");
+                document.getElementById('newDesignerEmail').value = '';
+                document.getElementById('newDesignerPassword').value = '';
+                await loadDesigners();
+            } catch(e) { alert("حدث خطأ أثناء إضافة الحساب، قد يكون مكرراً"); }
+        }
+
+        async function updateDesignerStatus(profileId, newStatus) {
+            try {
+                const { error } = await supa
+                    .from('profiles')
+                    .update({ status: newStatus })
+                    .eq('id', profileId);
+
+                if (error) throw error;
+                alert("تم تعديل حالة الحساب بنجاح");
+                await loadDesigners();
+            } catch(e) { alert("فشل تعديل حالة الحساب"); }
+        }
+
+        async function deleteDesignerAccount(profileId) {
+            if (!confirm("هل أنت متأكد من حذف حساب هذا المصمم نهائياً؟")) return;
+            try {
+                const { error } = await supa.from('profiles').delete().eq('id', profileId);
+                if (error) throw error;
+                alert("تم حذف الحساب بنجاح");
+                await loadDesigners();
+            } catch(e) { alert("فشل في حذف حساب المصمم"); }
+        }
+
         function shareWhatsapp(n, l) { window.open(`https://wa.me/?text=مرحباً ${n}، تذكرتك الرقمية جاهزة للحفل: ${encodeURIComponent(l)}`, '_blank'); }
         function copyLink(l) { navigator.clipboard.writeText(l).then(()=>alert("تم النسخ")); }
         
@@ -717,3 +869,4 @@
     </script>
 </body>
 </html>
+

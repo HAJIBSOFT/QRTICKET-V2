@@ -6,19 +6,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HAJIB | مصمم الدعوات</title>
     
-    <!-- مكتبة Supabase -->
+    <!-- مكتبة Supabase ومكتبة توليد الـ ZIP وتنزيل الملفات ومكتبات الـ Drag والتحريك التفاعلي -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        :root { --bg: #111827; --panel: #1f2937; --primary: #3b82f6; --text: #f3f4f6; --success: #10b981; --border: #374151; }
+        :root { 
+            --bg: #0f172a; 
+            --panel: #1e293b; 
+            --primary: #6366f1; 
+            --primary-hover: #4f46e5;
+            --text: #f8fafc; 
+            --success: #10b981; 
+            --border: rgba(255, 255, 255, 0.08); 
+        }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         body { margin: 0; font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
 
+        /* --- الهيكل الرئيسي لسطح المكتب --- */
         .sidebar {
             width: 340px;
             background: var(--panel);
@@ -33,28 +43,28 @@
         .sidebar-header {
             padding: 15px; border-bottom: 1px solid var(--border);
             display: flex; justify-content: space-between; align-items: center;
-            background: #111827;
+            background: #0f172a;
         }
         .brand { font-weight: 800; color: var(--primary); font-size: 1.1rem; }
 
         .sidebar-content { flex: 1; overflow-y: auto; padding: 20px; }
 
-        .group-title { font-size: 0.85rem; color: #9ca3af; margin: 20px 0 10px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+        .group-title { font-size: 0.85rem; color: #94a3b8; margin: 20px 0 10px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
         .control-row { margin-bottom: 15px; }
-        label { display: flex; justify-content: space-between; color: #d1d5db; margin-bottom: 5px; font-size: 0.9rem; }
+        label { display: flex; justify-content: space-between; color: #cbd5e1; margin-bottom: 5px; font-size: 0.9rem; }
         
         input[type="range"] { width: 100%; height: 6px; background: #4b5563; border-radius: 5px; appearance: none; cursor: pointer; }
         input[type="range"]::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; background: var(--primary); border-radius: 50%; border: 2px solid white; }
-        input[type="file"] { font-size: 0.8rem; width: 100%; background: var(--bg); padding: 8px; border-radius: 5px; }
+        input[type="file"] { font-size: 0.8rem; width: 100%; background: var(--bg); padding: 8px; border-radius: 5px; color: white; border: 1px solid var(--border); }
 
         .sidebar-footer {
-            padding: 15px; background: #111827; border-top: 1px solid var(--border);
+            padding: 15px; background: #0f172a; border-top: 1px solid var(--border);
             display: flex; flex-direction: column; gap: 10px;
         }
 
         .nav-row { display: flex; gap: 10px; justify-content: space-between; align-items: center; margin-bottom: 10px; }
         .btn-nav { background: var(--panel); border: 1px solid var(--border); color: white; width: 45px; height: 45px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
-        .counter { font-size: 0.9rem; color: #9ca3af; font-family: monospace; }
+        .counter { font-size: 0.9rem; color: #94a3b8; font-family: monospace; }
         
         .btn-download {
             width: 100%; background: var(--success); color: white; border: none; padding: 12px;
@@ -72,38 +82,85 @@
 
         .canvas-container {
             flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; padding: 20px;
+            position: relative;
         }
         canvas { 
             max-width: 100%; max-height: 100%; 
             box-shadow: 0 0 30px rgba(0,0,0,0.5); 
             object-fit: contain;
+            cursor: move;
         }
 
-        .mobile-toggle {
-            display: none; position: absolute; top: 15px; left: 15px;
-            background: var(--primary); color: white; border: none; padding: 10px;
-            border-radius: 50%; width: 45px; height: 45px; z-index: 200;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 1.2rem; cursor: pointer;
+        .arrow-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            width: 120px;
+            margin: 0 auto;
         }
+        .btn-arrow {
+            background: #374151;
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 6px;
+            padding: 8px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .btn-arrow:hover { background: var(--primary); }
 
+        /* ==========================================
+          تعديل ذكي ومتجاوب بالكامل للجوال واللمس
+        ========================================== */
         @media (max-width: 768px) {
-            .sidebar { position: fixed; right: 0; top: 0; transform: translateX(100%); width: 85%; max-width: 320px; }
-            .sidebar.open { transform: translateX(0); }
-            .mobile-toggle { display: flex; align-items: center; justify-content: center; }
-            .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 90; backdrop-filter: blur(3px); }
-            .overlay.active { display: block; }
+            body {
+                flex-direction: column;
+                overflow-y: auto;
+                height: auto;
+            }
+            /* جعل كارت المعاينة ثابتاً في الأعلى */
+            .main-area {
+                width: 100%;
+                height: 45vh;
+                min-height: 320px;
+                flex: none;
+            }
+            .canvas-container {
+                padding: 10px;
+                height: 100%;
+            }
+            /* جعل لوحة التحكم تنساب وتتوضع بسلاسة تحت الصورة */
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+                transform: none;
+                box-shadow: none;
+                border-left: none;
+                border-top: 1px solid var(--border);
+            }
+            .sidebar-content {
+                height: auto;
+                overflow-y: visible;
+                padding: 20px 15px;
+            }
+            .sidebar-footer {
+                position: sticky;
+                bottom: 0;
+                z-index: 101;
+                border-top: 1px solid var(--border);
+            }
+            .overlay {
+                display: none !important;
+            }
         }
     </style>
 </head>
 <body>
 
-    <button class="mobile-toggle" onclick="toggleSidebar()"><i class="fas fa-sliders-h"></i></button>
-    <div class="overlay" onclick="toggleSidebar()"></div>
-
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="brand"><i class="fas fa-paint-brush"></i> مصمم الدعوات</div>
-            <button onclick="toggleSidebar()" style="background:none; border:none; color:#9ca3af; display:none;" id="closeSidebar"><i class="fas fa-times"></i></button>
         </div>
 
         <div class="sidebar-content">
@@ -117,17 +174,9 @@
                 <label>الحجم <span><b id="val-qrSize">150</b>px</span></label>
                 <input type="range" id="qrSize" min="50" max="600" value="150">
             </div>
-            <div class="control-row">
-                <label>أفقي (X)</label>
-                <input type="range" id="qrX" min="0" max="2000" value="50">
-            </div>
-            <div class="control-row">
-                <label>عمودي (Y)</label>
-                <input type="range" id="qrY" min="0" max="2000" value="50">
-            </div>
-            <div class="control-row" style="background:rgba(255,255,255,0.05); padding:8px; border-radius:5px;">
+            <div class="control-row" style="background:rgba(255,255,255,0.05); padding:8px; border-radius:5px; margin-bottom: 10px;">
                 <label style="margin:0; font-size:0.8rem; color:#10b981;">
-                    <i class="fas fa-check-circle"></i> تم تفعيل خلفية بيضاء للباركود
+                    <i class="fas fa-info-circle"></i> يمكنك تحريك الباركود والاسم مباشرة بسحبهما على الصورة يدوياً
                 </label>
             </div>
 
@@ -141,16 +190,27 @@
                 <input type="range" id="textSize" min="10" max="200" value="40">
             </div>
             <div class="control-row">
-                <label>أفقي (X)</label>
-                <input type="range" id="textX" min="0" max="2000" value="50">
-            </div>
-            <div class="control-row">
-                <label>عمودي (Y)</label>
-                <input type="range" id="textY" min="0" max="2000" value="300">
-            </div>
-            <div class="control-row">
                 <label>لون النص</label>
                 <input type="color" id="textColor" value="#ffffff" style="width:100%; height:40px; border:none; padding:0; background:none;">
+            </div>
+
+            <div class="group-title">4. تحريك دقيق (الأداة المحددة)</div>
+            <div class="control-row">
+                <div style="display:flex; justify-content:center; gap:15px; margin-bottom:10px;">
+                    <label style="cursor:pointer;"><input type="radio" name="activeElement" id="selectQR" checked> باركود QR</label>
+                    <label style="cursor:pointer;"><input type="radio" name="activeElement" id="selectName"> اسم الضيف</label>
+                </div>
+                <div class="arrow-controls">
+                    <div></div>
+                    <button class="btn-arrow" onclick="moveElement('up')"><i class="fas fa-chevron-up"></i></button>
+                    <div></div>
+                    <button class="btn-arrow" onclick="moveElement('left')"><i class="fas fa-chevron-left"></i></button>
+                    <div style="display:flex; align-items:center; justify-content:center; font-size:0.8rem;">خطوة</div>
+                    <button class="btn-arrow" onclick="moveElement('right')"><i class="fas fa-chevron-right"></i></button>
+                    <div></div>
+                    <button class="btn-arrow" onclick="moveElement('down')"><i class="fas fa-chevron-down"></i></button>
+                    <div></div>
+                </div>
             </div>
         </div>
 
@@ -167,8 +227,11 @@
                 <button class="btn-nav" onclick="prevGuest()"><i class="fas fa-chevron-left"></i></button>
             </div>
 
-            <button class="btn-download" onclick="downloadCurrentPNG()">
-                <i class="fas fa-download"></i> تحميل البطاقة (PNG)
+            <button class="btn-download" onclick="downloadCurrentPNG()" style="margin-bottom: 5px;">
+                <i class="fas fa-download"></i> تحميل البطاقة الحالية (PNG)
+            </button>
+            <button class="btn-download" style="background:#6366f1;" onclick="downloadAllInZip()" id="btnZip">
+                <i class="fas fa-file-archive"></i> تحميل الكل ملف مضغوط (ZIP)
             </button>
         </div>
     </aside>
@@ -182,7 +245,6 @@
     <div id="hiddenQR" style="display:none;"></div>
 
     <script>
-        // إعداد وتوصيل مكتبة Supabase بالتعديل الجديد
         const SUPABASE_URL = 'https://bigisnpdoqxmpjwpbncv.supabase.co'; 
         const SUPABASE_ANON_KEY = 'sb_publishable_6ZtAL8lRYdreWg4Xhn6zLA_7-PwGvPJ'; 
         const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -197,9 +259,20 @@
         const ctx = canvas.getContext('2d');
 
         const state = {
-            qrSize: 150, qrX: 50, qrY: 50,
-            showName: true, textSize: 40, textX: 50, textY: 300, textColor: '#ffffff'
+            qrSize: 150, 
+            qrX: 100, 
+            qrY: 100,
+            showName: true, 
+            textSize: 40, 
+            textX: 300, 
+            textY: 450, 
+            textColor: '#ffffff'
         };
+
+        let isDragging = false;
+        let dragElement = null;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
 
         bgImg.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+gAAALQCAIAAACw5t5xAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABTSURBVHhe7cExAQAAAMKg9U9tDQ8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4McIsHgAAa1w1XEAAAAASUVORK5CYII=";
         bgImg.onload = renderCurrentGuest;
@@ -210,7 +283,6 @@
                 return;
             }
             try {
-                // استخدام supa لسحب الضيوف
                 const { data, error } = await supa
                     .from('tickets')
                     .select('*')
@@ -242,12 +314,6 @@
             if (guests.length === 0) return;
             document.getElementById('counterDisplay').innerText = `${currentIndex + 1} / ${guests.length}`;
             document.getElementById('guestSelect').value = currentIndex;
-        }
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.querySelector('.overlay').classList.toggle('active');
-            const closeBtn = document.getElementById('closeSidebar');
-            if(window.innerWidth <= 768) closeBtn.style.display = 'block';
         }
 
         window.nextGuest = () => { if(currentIndex < guests.length-1) { currentIndex++; updateUI(); renderCurrentGuest(); } };
@@ -288,25 +354,111 @@
             }
         }
 
+        function getCanvasMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function checkHitElement(pos) {
+            if (pos.x >= state.qrX && pos.x <= state.qrX + state.qrSize &&
+                pos.y >= state.qrY && pos.y <= state.qrY + state.qrSize) {
+                return 'qr';
+            }
+            if (state.showName) {
+                const textWidth = ctx.measureText(guests[currentIndex].name).width;
+                if (pos.x >= state.textX - textWidth && pos.x <= state.textX &&
+                    pos.y >= state.textY - state.textSize && pos.y <= state.textY) {
+                    return 'name';
+                }
+            }
+            return null;
+        }
+
+        function startDrag(e) {
+            const pos = getCanvasMousePos(e);
+            const hit = checkHitElement(pos);
+            if (hit) {
+                isDragging = true;
+                dragElement = hit;
+                if (hit === 'qr') {
+                    dragOffsetX = pos.x - state.qrX;
+                    dragOffsetY = pos.y - state.qrY;
+                    document.getElementById('selectQR').checked = true;
+                } else {
+                    dragOffsetX = pos.x - state.textX;
+                    dragOffsetY = pos.y - state.textY;
+                    document.getElementById('selectName').checked = true;
+                }
+            }
+        }
+
+        function doDrag(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            const pos = getCanvasMousePos(e);
+            if (dragElement === 'qr') {
+                state.qrX = Math.round(pos.x - dragOffsetX);
+                state.qrY = Math.round(pos.y - dragOffsetY);
+            } else if (dragElement === 'name') {
+                state.textX = Math.round(pos.x - dragOffsetX);
+                state.textY = Math.round(pos.y - dragOffsetY);
+            }
+            renderCurrentGuest();
+        }
+
+        function endDrag() {
+            isDragging = false;
+            dragElement = null;
+        }
+
+        canvas.addEventListener('mousedown', startDrag);
+        canvas.addEventListener('mousemove', doDrag);
+        canvas.addEventListener('mouseup', endDrag);
+        canvas.addEventListener('touchstart', startDrag, { passive: false });
+        canvas.addEventListener('touchmove', doDrag, { passive: false });
+        canvas.addEventListener('touchend', endDrag);
+
+        function moveElement(dir) {
+            const isQR = document.getElementById('selectQR').checked;
+            const step = 5;
+            if (isQR) {
+                if (dir === 'up') state.qrY -= step;
+                if (dir === 'down') state.qrY += step;
+                if (dir === 'left') state.qrX -= step;
+                if (dir === 'right') state.qrX += step;
+            } else {
+                if (dir === 'up') state.textY -= step;
+                if (dir === 'down') state.textY += step;
+                if (dir === 'left') state.textX -= step;
+                if (dir === 'right') state.textX += step;
+            }
+            renderCurrentGuest();
+        }
+
         const bind = (id) => {
             document.getElementById(id).addEventListener('input', (e) => {
-                let val = e.target.type==='checkbox'?e.target.checked:e.target.value;
-                if(e.target.type==='range') val = parseInt(val);
+                let val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+                if (e.target.type === 'range') val = parseInt(val);
                 state[id] = val;
-                if(document.getElementById('val-'+id)) document.getElementById('val-'+id).innerText = val;
+                if (document.getElementById('val-' + id)) document.getElementById('val-' + id).innerText = val;
                 renderCurrentGuest();
             });
         };
-        ['qrSize','qrX','qrY','textSize','textX','textY','textColor','showName'].forEach(bind);
+        ['qrSize', 'textSize', 'textColor', 'showName'].forEach(bind);
 
         document.getElementById('bgInput').addEventListener('change', (e) => {
-            if(e.target.files[0]) {
+            if (e.target.files[0]) {
                 const r = new FileReader();
                 r.onload = (ev) => {
                     bgImg = new Image();
                     bgImg.onload = () => {
-                        const m = Math.max(bgImg.width, bgImg.height);
-                        ['qrX','qrY','textX','textY'].forEach(id => document.getElementById(id).max = m);
                         renderCurrentGuest();
                     };
                     bgImg.src = ev.target.result;
@@ -316,8 +468,37 @@
         });
 
         function downloadCurrentPNG() {
-            if(guests.length === 0) return;
-            canvas.toBlob(blob => saveAs(blob, `${guests[currentIndex].name.replace(/[^a-z0-9]/gi, "_")}.png`), "image/png", 1.0);
+            if (guests.length === 0) return;
+            canvas.toBlob(blob => saveAs(blob, `${guests[currentIndex].name.replace(/[^a-z0-9\u0600-\u06FF]/gi, "_")}.png`), "image/png", 1.0);
+        }
+
+        async function downloadAllInZip() {
+            if (guests.length === 0) return alert("لا يوجد مدعوون لتصدير بطاقاتهم");
+            const btn = document.getElementById('btnZip');
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> جاري إعداد الملف المضغوط...';
+            btn.disabled = true;
+
+            const zip = new JSZip();
+            const originalIndex = currentIndex;
+
+            for (let i = 0; i < guests.length; i++) {
+                currentIndex = i;
+                await renderCurrentGuest();
+                
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+                const safeName = guests[i].name.replace(/[^a-z0-9\u0600-\u06FF]/gi, "_");
+                zip.file(`${i + 1}_${safeName}.png`, blob);
+            }
+
+            currentIndex = originalIndex;
+            await renderCurrentGuest();
+            updateUI();
+
+            zip.generateAsync({ type: 'blob' }).then(content => {
+                saveAs(content, `دعوات_${eventSlug || 'الحفل'}.zip`);
+                btn.innerHTML = '<i class="fas fa-file-archive"></i> تحميل الكل ملف مضغوط (ZIP)';
+                btn.disabled = false;
+            });
         }
 
         fetchData();

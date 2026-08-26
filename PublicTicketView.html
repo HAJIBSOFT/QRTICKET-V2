@@ -6,6 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تذكرة الدعوة الرقمية</title>
     
+    <!-- بطاقة المعاينة الفاخرة للواتساب ومنصات التواصل الاجتماعي (Open Graph) -->
+    <meta property="og:title" content="بطاقة دعوة رقمية خاصة">
+    <meta property="og:description" content="يتشرفون بدعوتكم لحضور الحفل المبارك. اضغط لعرض تفاصيل الدعوة وموقع الحفل والباركود الخاص بك.">
+    <meta property="og:image" content="https://bigisnpdoqxmpjwpbncv.supabase.co/storage/v1/object/public/pass-assets/strip%20(1).png">
+    <meta property="og:type" content="website">
+
     <!-- مكتبة Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- مكتبة QR -->
@@ -149,6 +155,32 @@
             font-weight: 800;
         }
 
+        /* زر موقع الحفل الفاخر */
+        .btn-location-link {
+            display: none;
+            width: 100%;
+            text-decoration: none;
+            margin-top: 5px;
+            margin-bottom: 15px;
+        }
+        .btn-location {
+            width: 100%;
+            background: linear-gradient(135deg, var(--gold-primary), var(--gold-light));
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 5px 15px rgba(184, 144, 71, 0.15);
+            transition: 0.2s;
+        }
+        .btn-location:active { transform: scale(0.98); }
+
         .ticket-footer { 
             background: rgba(184, 144, 71, 0.03); 
             padding: 30px 20px; 
@@ -220,7 +252,7 @@
     <div class="ticket-container" id="ticketContainer">
         <div class="ticket-card" id="ticketCard">
             <div class="ticket-header">
-              
+                <i class="fas fa-crown logo-icon"></i>
                 <div class="event-title" id="eventTitle">حفل الزواج المبارك</div>
             </div>
 
@@ -240,6 +272,13 @@
                         <span class="detail-value" id="eventLocation">-</span>
                     </div>
                 </div>
+
+                <!-- زر الموقع يظهر ديناميكياً -->
+                <a id="locationBtn" class="btn-location-link" href="#" target="_blank">
+                    <button class="btn-location">
+                        <i class="fas fa-map-marked-alt"></i> موقع القاعة على الخريطة
+                    </button>
+                </a>
             </div>
 
             <div class="ticket-footer">
@@ -265,7 +304,7 @@
         const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let currentTicket = null;
-        let passCache = null; // ذاكرة تخزين مؤقتة لتجنب تكرار الاتصال بالمخدم
+        let passCache = null;
 
         document.addEventListener('DOMContentLoaded', async function() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -273,7 +312,7 @@
             const eventSlug = urlParams.get('event');
             
             if (!qrData || !eventSlug) {
-                document.getElementById('loadingIndicator').innerHTML = '<p style="color:red">عذراً,الرابط غير صحيح او ان الفعالية منتهية</p>';
+                document.getElementById('loadingIndicator').innerHTML = '<p style="color:red">عذراً، الرابط غير مكتمل أو غير صحيح.</p>';
                 return;
             }
 
@@ -296,7 +335,7 @@
 
                 const { data: eventData } = await supa
                     .from('events')
-                    .select('title, event_date, location')
+                    .select('title, event_date, location, location_url')
                     .eq('slug', eventSlug)
                     .single();
 
@@ -313,6 +352,13 @@
                 document.getElementById('eventDate').innerText = (eventData && eventData.event_date) ? eventData.event_date : 'يحدد لاحقاً';
                 document.getElementById('eventLocation').innerText = (eventData && eventData.location) ? eventData.location : 'يحدد لاحقاً';
                 
+                // تفعيل رابط الخريطة إذا وجد
+                if (eventData && eventData.location_url) {
+                    const locBtn = document.getElementById('locationBtn');
+                    locBtn.href = eventData.location_url;
+                    locBtn.style.display = 'block';
+                }
+
                 new QRCode(document.getElementById('qrcodeDisplay'), { text: ticket.id, width: 140, height: 140 });
                 updateUI(ticket.status);
 
@@ -334,7 +380,6 @@
             }
         }
 
-        // دالة موحدة لطلب إصدار التذكرة وحفظها في قاعدة البيانات وتوليد السيريال
         async function getOrCreatePass() {
             if (passCache) return passCache;
 
@@ -391,7 +436,6 @@
 
             const result = await response.json();
             
-            // ربط سيريال المحفظة بالتذكرة في Supabase لبث الإشعارات لاحقاً
             if (result.serialNumber) {
                 await supa
                     .from('tickets')
@@ -403,7 +447,6 @@
             return result;
         }
 
-        // إضافة إلى محفظة أبل
         async function addToAppleWallet() {
             if (!currentTicket) return;
             const btn = document.getElementById('appleWalletBtn');
@@ -412,7 +455,6 @@
             try {
                 const passData = await getOrCreatePass();
                 
-                // فك ترميز Base64 الصادر من API WalletWallet لإنشاء ملف ثنائي .pkpass
                 const byteCharacters = atob(passData.applePass);
                 const byteNumbers = new Array(byteCharacters.length);
                 for (let i = 0; i < byteCharacters.length; i++) {
@@ -436,7 +478,6 @@
             }
         }
 
-        // إضافة إلى محفظة جوجل
         async function addToGoogleWallet() {
             if (!currentTicket) return;
             const btn = document.getElementById('googleWalletBtn');
