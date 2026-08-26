@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -6,240 +5,637 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HAJIB | مصمم الدعوات</title>
     
-    <!-- مكتبة Supabase ومكتبة توليد الـ ZIP وتنزيل الملفات ومكتبات الـ Drag والتحريك التفاعلي -->
+    <!-- المكتبات الأساسية -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         :root { 
-            --bg: #0f172a; 
-            --panel: #1e293b; 
-            --primary: #6366f1; 
-            --primary-hover: #4f46e5;
+            --bg-gradient: linear-gradient(135deg, #090d16 0%, #111827 100%);
+            --panel-bg: rgba(22, 30, 49, 0.75); 
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
             --text: #f8fafc; 
-            --success: #10b981; 
+            --text-muted: #94a3b8;
+            --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
             --border: rgba(255, 255, 255, 0.08); 
-        }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-        body { margin: 0; font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
-
-        /* --- الهيكل الرئيسي لسطح المكتب --- */
-        .sidebar {
-            width: 340px;
-            background: var(--panel);
-            border-left: 1px solid var(--border);
-            display: flex; flex-direction: column;
-            height: 100vh;
-            z-index: 100;
-            transition: transform 0.3s ease;
-            box-shadow: -5px 0 15px rgba(0,0,0,0.3);
+            --radius-lg: 16px;
+            --radius-md: 12px;
         }
 
-        .sidebar-header {
-            padding: 15px; border-bottom: 1px solid var(--border);
-            display: flex; justify-content: space-between; align-items: center;
-            background: #0f172a;
-        }
-        .brand { font-weight: 800; color: var(--primary); font-size: 1.1rem; }
-
-        .sidebar-content { flex: 1; overflow-y: auto; padding: 20px; }
-
-        .group-title { font-size: 0.85rem; color: #94a3b8; margin: 20px 0 10px; font-weight: bold; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
-        .control-row { margin-bottom: 15px; }
-        label { display: flex; justify-content: space-between; color: #cbd5e1; margin-bottom: 5px; font-size: 0.9rem; }
-        
-        input[type="range"] { width: 100%; height: 6px; background: #4b5563; border-radius: 5px; appearance: none; cursor: pointer; }
-        input[type="range"]::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; background: var(--primary); border-radius: 50%; border: 2px solid white; }
-        input[type="file"] { font-size: 0.8rem; width: 100%; background: var(--bg); padding: 8px; border-radius: 5px; color: white; border: 1px solid var(--border); }
-
-        .sidebar-footer {
-            padding: 15px; background: #0f172a; border-top: 1px solid var(--border);
-            display: flex; flex-direction: column; gap: 10px;
+        * { 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent; 
+            outline: none; 
+            font-family: 'Tajawal', sans-serif;
         }
 
-        .nav-row { display: flex; gap: 10px; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .btn-nav { background: var(--panel); border: 1px solid var(--border); color: white; width: 45px; height: 45px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
-        .counter { font-size: 0.9rem; color: #94a3b8; font-family: monospace; }
-        
-        .btn-download {
-            width: 100%; background: var(--success); color: white; border: none; padding: 12px;
-            border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
-            font-size: 1rem; transition: 0.2s;
+        body { 
+            margin: 0; 
+            background: #090d16;
+            background-image: var(--bg-gradient);
+            color: var(--text); 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            overflow: hidden; 
         }
-        .btn-download:hover { background: #059669; }
-        .btn-download:active { transform: scale(0.98); }
 
-        .main-area {
-            flex: 1; display: flex; flex-direction: column; position: relative;
-            background: #000;
-            background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px;
+        /* الهيكل الأساسي للتطبيق */
+        .app-header {
+            height: 60px;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+        }
+
+        .brand { 
+            font-weight: 800; 
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.2rem; 
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .app-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column; /* للجوال الافتراضي: الصورة أعلى والخيارات أسفل */
+            height: calc(100vh - 60px);
+            overflow: hidden;
+        }
+
+        /* منطقة استعراض الكرت (أعلى في الجوال) */
+        .preview-section {
+            flex: 0 0 45vh; /* تأخذ 45% من مساحة الطول الرأسية في الهاتف */
+            min-height: 280px;
+            background: #050811;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            position: relative;
+            border-bottom: 1px solid var(--border);
+            box-shadow: inset 0 -10px 20px rgba(0,0,0,0.4);
         }
 
         .canvas-container {
-            flex: 1; display: flex; justify-content: center; align-items: center; overflow: hidden; padding: 20px;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             position: relative;
         }
+
         canvas { 
-            max-width: 100%; max-height: 100%; 
-            box-shadow: 0 0 30px rgba(0,0,0,0.5); 
+            max-width: 100%; 
+            max-height: 100%; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6); 
+            border-radius: 8px;
             object-fit: contain;
             cursor: move;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
+        /* لوحة التحكم والخيارات (أسفل في الجوال) */
+        .controls-section {
+            flex: 1;
+            overflow-y: auto;
+            background: rgba(15, 23, 42, 0.4);
+            padding: 20px;
+            padding-bottom: 40px;
+        }
+
+        .controls-grid {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* كروت الخيارات */
+        .control-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
+        .card-title i {
+            color: var(--primary);
+        }
+
+        /* عناصر الإدخال المخصصة */
+        .control-row { 
+            margin-bottom: 15px; 
+        }
+        .control-row:last-child {
+            margin-bottom: 0;
+        }
+
+        label { 
+            display: flex; 
+            justify-content: space-between; 
+            color: var(--text-muted); 
+            margin-bottom: 8px; 
+            font-size: 0.9rem; 
+            font-weight: 500;
+        }
+
+        label span {
+            color: var(--primary);
+            font-weight: bold;
+        }
+        
+        /* مظهر شريط التمرير */
+        input[type="range"] { 
+            width: 100%; 
+            height: 6px; 
+            background: rgba(255, 255, 255, 0.1); 
+            border-radius: 5px; 
+            appearance: none; 
+            cursor: pointer; 
+        }
+        input[type="range"]::-webkit-slider-thumb { 
+            appearance: none; 
+            width: 18px; 
+            height: 18px; 
+            background: var(--primary); 
+            border-radius: 50%; 
+            border: 2px solid white; 
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+            transition: transform 0.1s;
+        }
+        input[type="range"]::-webkit-slider-thumb:active {
+            transform: scale(1.2);
+        }
+
+        /* زر مخصص لرفع الملفات */
+        .file-upload-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        .file-upload-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+        .file-upload-btn:hover {
+            border-color: var(--primary);
+            color: var(--text);
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        /* منتقي الألوان */
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .color-picker-wrapper input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: none;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        .color-picker-wrapper input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        .color-picker-wrapper input[type="color"]::-webkit-color-swatch {
+            border: 2px solid var(--border);
+            border-radius: 50%;
+        }
+
+        /* تخصيص زر التبديل السريع (Checkbox) */
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+        .switch input { 
+            opacity: 0; width: 0; height: 0; 
+        }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #334155; transition: .3s; border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px;
+            background-color: white; transition: .3s; border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-image: var(--primary-gradient);
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        /* تحويل راديو الاختيار إلى أزرار تفاعلية فخمة */
+        .selector-group {
+            display: flex;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 15px;
+        }
+        .selector-item {
+            flex: 1;
+            text-align: center;
+        }
+        .selector-item input[type="radio"] {
+            display: none;
+        }
+        .selector-item label {
+            display: block;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            margin: 0;
+            justify-content: center;
+        }
+        .selector-item input[type="radio"]:checked + label {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+
+        /* لوحة الأسهم للتوجيه */
         .arrow-controls {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 5px;
-            width: 120px;
+            gap: 8px;
+            width: 140px;
             margin: 0 auto;
         }
         .btn-arrow {
-            background: #374151;
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border);
             color: white;
-            border-radius: 6px;
-            padding: 8px;
+            border-radius: 12px;
+            padding: 12px;
             cursor: pointer;
             text-align: center;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .btn-arrow:hover { background: var(--primary); }
+        .btn-arrow:hover { 
+            background: var(--primary-gradient); 
+            border-color: transparent;
+            transform: scale(1.05);
+        }
+        .btn-arrow:active {
+            transform: scale(0.95);
+        }
+
+        /* صندوق التنقل وتحميل الملفات */
+        .guest-nav-box {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .guest-select-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        .guest-select-wrapper select {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            color: white;
+            font-size: 0.95rem;
+            appearance: none;
+            cursor: pointer;
+        }
+        .guest-select-wrapper::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .nav-buttons-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .btn-nav { 
+            background: rgba(255, 255, 255, 0.05); 
+            border: 1px solid var(--border); 
+            color: white; 
+            width: 48px; 
+            height: 48px; 
+            border-radius: var(--radius-md); 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 1.1rem; 
+            transition: all 0.2s;
+        }
+        .btn-nav:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .counter-pill { 
+            font-size: 0.95rem; 
+            color: var(--text); 
+            font-weight: bold;
+            background: rgba(139, 92, 246, 0.1);
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        /* أزرار التحميل */
+        .btn-action {
+            width: 100%; 
+            color: white; 
+            border: none; 
+            padding: 14px;
+            border-radius: var(--radius-md); 
+            font-weight: 700; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 10px;
+            font-size: 1rem; 
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+        }
+        .btn-png {
+            background: var(--success-gradient);
+        }
+        .btn-png:hover {
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+            transform: translateY(-1px);
+        }
+        .btn-zip {
+            background: var(--primary-gradient);
+        }
+        .btn-zip:hover {
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.3);
+            transform: translateY(-1px);
+        }
+        .btn-action:active {
+            transform: translateY(1px);
+        }
+
+        /* تلميح مساعدة الجوال */
+        .touch-tip {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(139, 92, 246, 0.05);
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(139, 92, 246, 0.1);
+        }
 
         /* ==========================================
-          تعديل ذكي ومتجاوب بالكامل للجوال واللمس
+          تعديل الشاشات الكبيرة (أجهزة سطح المكتب والآيباد)
         ========================================== */
-        @media (max-width: 768px) {
-            body {
-                flex-direction: column;
-                overflow-y: auto;
-                height: auto;
+        @media (min-width: 1024px) {
+            .app-main {
+                flex-direction: row; /* يمين خيارات، ويسار الصورة */
             }
-            /* جعل كارت المعاينة ثابتاً في الأعلى */
-            .main-area {
-                width: 100%;
-                height: 45vh;
-                min-height: 320px;
-                flex: none;
-            }
-            .canvas-container {
-                padding: 10px;
+            .preview-section {
+                flex: 1; /* الصورة تأخذ المساحة المتبقية */
                 height: 100%;
+                border-bottom: none;
+                border-left: 1px solid var(--border);
             }
-            /* جعل لوحة التحكم تنساب وتتوضع بسلاسة تحت الصورة */
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: static;
-                transform: none;
-                box-shadow: none;
-                border-left: none;
-                border-top: 1px solid var(--border);
-            }
-            .sidebar-content {
-                height: auto;
-                overflow-y: visible;
-                padding: 20px 15px;
-            }
-            .sidebar-footer {
-                position: sticky;
-                bottom: 0;
-                z-index: 101;
-                border-top: 1px solid var(--border);
-            }
-            .overlay {
-                display: none !important;
+            .controls-section {
+                width: 420px; /* عرض ثابت لوحة التحكم في الأجهزة الكبيرة */
+                flex: none;
+                height: 100%;
             }
         }
     </style>
 </head>
 <body>
 
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="brand"><i class="fas fa-paint-brush"></i> مصمم الدعوات</div>
-        </div>
+    <header class="app-header">
+        <div class="brand"><i class="fas fa-magic"></i> مصمم الدعوات</div>
+    </header>
 
-        <div class="sidebar-content">
-            <div class="group-title">1. التصميم</div>
-            <div class="control-row">
-                <input type="file" id="bgInput" accept="image/*">
+    <main class="app-main">
+        <!-- قسم المعاينة (في الأعلى على الجوال) -->
+        <section class="preview-section">
+            <div class="canvas-container">
+                <canvas id="canvas"></canvas>
             </div>
+        </section>
 
-            <div class="group-title">2. الباركود (QR)</div>
-            <div class="control-row">
-                <label>الحجم <span><b id="val-qrSize">150</b>px</span></label>
-                <input type="range" id="qrSize" min="50" max="600" value="150">
-            </div>
-            <div class="control-row" style="background:rgba(255,255,255,0.05); padding:8px; border-radius:5px; margin-bottom: 10px;">
-                <label style="margin:0; font-size:0.8rem; color:#10b981;">
-                    <i class="fas fa-info-circle"></i> يمكنك تحريك الباركود والاسم مباشرة بسحبهما على الصورة يدوياً
-                </label>
-            </div>
-
-            <div class="group-title">3. اسم الضيف</div>
-            <div class="control-row" style="display:flex; align-items:center; gap:10px;">
-                <input type="checkbox" id="showName" checked style="width:20px; height:20px;">
-                <label style="margin:0;">إظهار الاسم</label>
-            </div>
-            <div class="control-row">
-                <label>حجم الخط <span><b id="val-textSize">40</b>px</span></label>
-                <input type="range" id="textSize" min="10" max="200" value="40">
-            </div>
-            <div class="control-row">
-                <label>لون النص</label>
-                <input type="color" id="textColor" value="#ffffff" style="width:100%; height:40px; border:none; padding:0; background:none;">
-            </div>
-
-            <div class="group-title">4. تحريك دقيق (الأداة المحددة)</div>
-            <div class="control-row">
-                <div style="display:flex; justify-content:center; gap:15px; margin-bottom:10px;">
-                    <label style="cursor:pointer;"><input type="radio" name="activeElement" id="selectQR" checked> باركود QR</label>
-                    <label style="cursor:pointer;"><input type="radio" name="activeElement" id="selectName"> اسم الضيف</label>
+        <!-- قسم الخيارات والتحكم (في الأسفل على الجوال) -->
+        <section class="controls-section">
+            <div class="controls-grid">
+                
+                <!-- الكرت 1: الخلفية والتصميم الأساسي -->
+                <div class="control-card">
+                    <div class="card-title">
+                        <i class="fas fa-image"></i>
+                        <span>1. قالب الدعوة</span>
+                    </div>
+                    <div class="control-row">
+                        <div class="file-upload-wrapper">
+                            <label for="bgInput" class="file-upload-btn">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 1.2rem; color: var(--primary);"></i>
+                                <span>اختر صورة الخلفية لتغييرها</span>
+                            </label>
+                            <input type="file" id="bgInput" accept="image/*" style="display: none;">
+                        </div>
+                    </div>
                 </div>
-                <div class="arrow-controls">
-                    <div></div>
-                    <button class="btn-arrow" onclick="moveElement('up')"><i class="fas fa-chevron-up"></i></button>
-                    <div></div>
-                    <button class="btn-arrow" onclick="moveElement('left')"><i class="fas fa-chevron-left"></i></button>
-                    <div style="display:flex; align-items:center; justify-content:center; font-size:0.8rem;">خطوة</div>
-                    <button class="btn-arrow" onclick="moveElement('right')"><i class="fas fa-chevron-right"></i></button>
-                    <div></div>
-                    <button class="btn-arrow" onclick="moveElement('down')"><i class="fas fa-chevron-down"></i></button>
-                    <div></div>
+
+                <!-- الكرت 2: خيارات الخط والاسم -->
+                <div class="control-card">
+                    <div class="card-title">
+                        <i class="fas fa-user-tag"></i>
+                        <span>2. اسم الضيف</span>
+                    </div>
+                    
+                    <div class="control-row">
+                        <div class="toggle-switch">
+                            <span style="font-weight: 500; font-size: 0.95rem;">إظهار الاسم على الكرت</span>
+                            <label class="switch">
+                                <input type="checkbox" id="showName" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="control-row">
+                        <label>حجم خط الاسم <span><b id="val-textSize">40</b>px</span></label>
+                        <input type="range" id="textSize" min="10" max="200" value="40">
+                    </div>
+
+                    <div class="control-row">
+                        <label>لون الخط المفضل</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" id="textColor" value="#ffffff">
+                            <span style="font-size: 0.85rem; color: var(--text-muted)">اضغط لتغيير اللون</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="sidebar-footer">
-            <div class="control-row" style="margin:0;">
-                <select id="guestSelect" onchange="jumpToGuest()" style="width:100%; padding:8px; background:#374151; color:white; border:1px solid #4b5563; border-radius:5px;">
-                    <option>جاري التحميل...</option>
-                </select>
-            </div>
-            
-            <div class="nav-row">
-                <button class="btn-nav" onclick="nextGuest()"><i class="fas fa-chevron-right"></i></button>
-                <span class="counter" id="counterDisplay">0 / 0</span>
-                <button class="btn-nav" onclick="prevGuest()"><i class="fas fa-chevron-left"></i></button>
-            </div>
+                <!-- الكرت 3: خيارات الباركود QR -->
+                <div class="control-card">
+                    <div class="card-title">
+                        <i class="fas fa-qrcode"></i>
+                        <span>3. باركود QR</span>
+                    </div>
+                    <div class="control-row">
+                        <label>حجم رمز الباركود <span><b id="val-qrSize">150</b>px</span></label>
+                        <input type="range" id="qrSize" min="50" max="600" value="150">
+                    </div>
+                    <div class="control-row">
+                        <div class="touch-tip">
+                            <i class="fas fa-hand-pointer" style="color: var(--primary);"></i>
+                            <span>تلميح: اسحب الباركود أو الاسم بإصبعك على الكرت لتغيير مكانه بسهولة.</span>
+                        </div>
+                    </div>
+                </div>
 
-            <button class="btn-download" onclick="downloadCurrentPNG()" style="margin-bottom: 5px;">
-                <i class="fas fa-download"></i> تحميل البطاقة الحالية (PNG)
-            </button>
-            <button class="btn-download" style="background:#6366f1;" onclick="downloadAllInZip()" id="btnZip">
-                <i class="fas fa-file-archive"></i> تحميل الكل ملف مضغوط (ZIP)
-            </button>
-        </div>
-    </aside>
+                <!-- الكرت 4: أداة التحريك الدقيق والضبط -->
+                <div class="control-card">
+                    <div class="card-title">
+                        <i class="fas fa-arrows-alt"></i>
+                        <span>4. التحريك الدقيق</span>
+                    </div>
+                    <div class="control-row">
+                        <div class="selector-group">
+                            <div class="selector-item">
+                                <input type="radio" name="activeElement" id="selectQR" checked>
+                                <label for="selectQR"><i class="fas fa-qrcode"></i> الباركود</label>
+                            </div>
+                            <div class="selector-item">
+                                <input type="radio" name="activeElement" id="selectName">
+                                <label for="selectName"><i class="fas fa-font"></i> الاسم</label>
+                            </div>
+                        </div>
+                        
+                        <div class="arrow-controls">
+                            <div></div>
+                            <button class="btn-arrow" onclick="moveElement('up')"><i class="fas fa-chevron-up"></i></button>
+                            <div></div>
+                            <button class="btn-arrow" onclick="moveElement('left')"><i class="fas fa-chevron-left"></i></button>
+                            <div style="display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight: bold; color: var(--text-muted);">ضبط</div>
+                            <button class="btn-arrow" onclick="moveElement('right')"><i class="fas fa-chevron-right"></i></button>
+                            <div></div>
+                            <button class="btn-arrow" onclick="moveElement('down')"><i class="fas fa-chevron-down"></i></button>
+                            <div></div>
+                        </div>
+                    </div>
+                </div>
 
-    <main class="main-area">
-        <div class="canvas-container">
-            <canvas id="canvas"></canvas>
-        </div>
+                <!-- الكرت 5: التنقل والتحميل -->
+                <div class="control-card" style="margin-bottom: 20px;">
+                    <div class="card-title">
+                        <i class="fas fa-tasks"></i>
+                        <span>5. الإجراءات والتحميل</span>
+                    </div>
+                    <div class="control-row guest-nav-box">
+                        <div class="guest-select-wrapper">
+                            <select id="guestSelect" onchange="jumpToGuest()">
+                                <option>جاري التحميل...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="nav-buttons-row">
+                            <button class="btn-nav" onclick="nextGuest()"><i class="fas fa-chevron-right"></i></button>
+                            <span class="counter-pill" id="counterDisplay">0 / 0</span>
+                            <button class="btn-nav" onclick="prevGuest()"><i class="fas fa-chevron-left"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div class="control-row" style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
+                        <button class="btn-action btn-png" onclick="downloadCurrentPNG()">
+                            <i class="fas fa-download"></i> تحميل البطاقة الحالية (PNG)
+                        </button>
+                        <button class="btn-action btn-zip" onclick="downloadAllInZip()" id="btnZip">
+                            <i class="fas fa-file-archive"></i> تحميل الكل ملف مضغوط (ZIP)
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
     </main>
 
     <div id="hiddenQR" style="display:none;"></div>
@@ -337,6 +733,7 @@
             const boxY = state.qrY - padding;
             const boxSize = state.qrSize + (padding * 2);
 
+            // رسم خلفية الباركود البيضاء
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(boxX, boxY, boxSize, boxSize);
 
@@ -352,6 +749,24 @@
                 ctx.textAlign = 'right';
                 ctx.fillText(guest.name, state.textX, state.textY);
             }
+
+            // رسم إطار توجيهي متقطع حول العنصر المحدد لتسهيل تجربة التعديل
+            const isQRSelected = document.getElementById('selectQR').checked;
+            ctx.save();
+            ctx.strokeStyle = '#8b5cf6';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([6, 4]);
+
+            if (isQRSelected) {
+                // رسم التحديد حول الباركود
+                ctx.strokeRect(state.qrX - 5, state.qrY - 5, state.qrSize + 10, state.qrSize + 10);
+            } else if (state.showName) {
+                // رسم التحديد حول النص المكتوب
+                ctx.font = `bold ${state.textSize}px 'Tajawal'`;
+                const textWidth = ctx.measureText(guest.name).width;
+                ctx.strokeRect(state.textX - textWidth - 5, state.textY - state.textSize, textWidth + 10, state.textSize + 10);
+            }
+            ctx.restore();
         }
 
         function getCanvasMousePos(e) {
@@ -396,6 +811,7 @@
                     dragOffsetY = pos.y - state.textY;
                     document.getElementById('selectName').checked = true;
                 }
+                renderCurrentGuest();
             }
         }
 
@@ -453,6 +869,10 @@
         };
         ['qrSize', 'textSize', 'textColor', 'showName'].forEach(bind);
 
+        // ربط مستمعات الأحداث لتغيير الإطار المتقطع فور اختيار راديو "الاسم" أو "الباركود"
+        document.getElementById('selectQR').addEventListener('change', renderCurrentGuest);
+        document.getElementById('selectName').addEventListener('change', renderCurrentGuest);
+
         document.getElementById('bgInput').addEventListener('change', (e) => {
             if (e.target.files[0]) {
                 const r = new FileReader();
@@ -469,7 +889,10 @@
 
         function downloadCurrentPNG() {
             if (guests.length === 0) return;
-            canvas.toBlob(blob => saveAs(blob, `${guests[currentIndex].name.replace(/[^a-z0-9\u0600-\u06FF]/gi, "_")}.png`), "image/png", 1.0);
+            // حجب الإطار المتقطع مؤقتاً عند التصدير للـ PNG
+            renderWithoutSelectionAndExecute(() => {
+                canvas.toBlob(blob => saveAs(blob, `${guests[currentIndex].name.replace(/[^a-z0-9\u0600-\u06FF]/gi, "_")}.png`), "image/png", 1.0);
+            });
         }
 
         async function downloadAllInZip() {
@@ -483,11 +906,11 @@
 
             for (let i = 0; i < guests.length; i++) {
                 currentIndex = i;
-                await renderCurrentGuest();
-                
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-                const safeName = guests[i].name.replace(/[^a-z0-9\u0600-\u06FF]/gi, "_");
-                zip.file(`${i + 1}_${safeName}.png`, blob);
+                await renderWithoutSelectionAndExecute(async () => {
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
+                    const safeName = guests[i].name.replace(/[^a-z0-9\u0600-\u06FF]/gi, "_");
+                    zip.file(`${i + 1}_${safeName}.png`, blob);
+                });
             }
 
             currentIndex = originalIndex;
@@ -499,6 +922,41 @@
                 btn.innerHTML = '<i class="fas fa-file-archive"></i> تحميل الكل ملف مضغوط (ZIP)';
                 btn.disabled = false;
             });
+        }
+
+        // دالة مساعدة لتعطيل إطار التحديد التوجيهي مؤقتاً أثناء التصدير والتحميل لكي لا يظهر في الصورة النهائية للضيف
+        async function renderWithoutSelectionAndExecute(callback) {
+            const guest = guests[currentIndex];
+            const tempDiv = document.getElementById('hiddenQR'); tempDiv.innerHTML = '';
+            new QRCode(tempDiv, { text: guest.qrCode, width: state.qrSize, height: state.qrSize });
+            await new Promise(r => setTimeout(r, 80));
+            const qrImg = tempDiv.querySelector('img');
+
+            canvas.width = bgImg.width || 800; canvas.height = bgImg.height || 600;
+            ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+            const padding = 10; 
+            const boxX = state.qrX - padding;
+            const boxY = state.qrY - padding;
+            const boxSize = state.qrSize + (padding * 2);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(boxX, boxY, boxSize, boxSize);
+
+            if(qrImg) {
+                ctx.drawImage(qrImg, state.qrX, state.qrY, state.qrSize, state.qrSize);
+            } else {
+                ctx.fillStyle = "#000"; ctx.fillRect(state.qrX, state.qrY, state.qrSize, state.qrSize);
+            }
+
+            if(state.showName) {
+                ctx.font = `bold ${state.textSize}px 'Tajawal'`;
+                ctx.fillStyle = state.textColor;
+                ctx.textAlign = 'right';
+                ctx.fillText(guest.name, state.textX, state.textY);
+            }
+
+            await callback();
         }
 
         fetchData();
